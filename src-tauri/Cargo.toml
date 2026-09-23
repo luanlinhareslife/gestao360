@@ -1,0 +1,16 @@
+[package]
+name = "gestao360"
+version = "0.1.0"
+description = "Gestão 360 - Gestão de Empresas de Engenharia Civil"
+authors = ["Gestão 360"]
+edition = "2021"
+
+[lib]
+name = "gestao360_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.4", features = [] }
+
+[dependencies]
+tauri = { version = "2.8", features = [] }
