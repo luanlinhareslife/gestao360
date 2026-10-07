@@ -43,7 +43,7 @@ function firstMatch(text: string, patterns: RegExp[]) {
 
 function parseMoney(value?: string) {
   if (!value) return undefined;
-  const clean = value.replace(/R\\$\\s*/i, '').replace(/\\./g, '').replace(',', '.');
+  const clean = value.replace(/R\$\s*/i, '').replace(/\./g, '').replace(',', '.');
   const number = Number(clean);
   return Number.isFinite(number) ? number : undefined;
 }
@@ -178,25 +178,25 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
 
   const text = normalize(pageTexts.join('\n'));
   const number = firstMatch(text, [
-    /Contrato\\s*(?:Administrativo\\s*)?n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
-    /Contrato\\s*n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
+    /Contrato\s*(?:Administrativo\s*)?n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
+    /Contrato\s*n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
   ]);
   const process = firstMatch(text, [
-    /Processo(?:\\s*Administrativo)?\\s*(?:n[º°.]?\\s*)?([0-9.\\/-]+\\/[A-Z]+\\/[0-9]{4})/i,
-    /Processo\\s*(?:n[º°.]?\\s*)?([0-9.\\/-]+)/i,
+    /Processo(?:\s*Administrativo)?\s*(?:n[º°.]?\s*)?([0-9.\/-]+\/[A-Z]+\/[0-9]{4})/i,
+    /Processo\s*(?:n[º°.]?\s*)?([0-9.\/-]+)/i,
   ]);
   const valueText = firstMatch(text, [
-    /valor(?:\\s+total)?(?:\\s+do\\s+contrato)?\\s*(?:é|:)?\\s*R\\$\\s*([0-9.]+,[0-9]{2})/i,
-    /R\\$\\s*([0-9.]+,[0-9]{2})\\s*(?:\\(.*?\\))?\\s*[,;]?\\s*(?:valor|total)/i,
+    /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R\$\s*([0-9.]+,[0-9]{2})/i,
+    /R\$\s*([0-9.]+,[0-9]{2})\s*(?:\(.*?\))?\s*[,;]?\s*(?:valor|total)/i,
   ]);
   const signedAt = firstMatch(text, [
-    /(?:assinado|assinatura|celebrado)[^\\n]{0,80}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:assinado|assinatura|celebrado)[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/i,
   ]);
   const executionText = firstMatch(text, [
-    /(?:prazo de execução|execução)[^\\n]{0,80}?(\\d{1,4})\\s*dias/i,
+    /(?:prazo de execução|execução)[^\n]{0,80}?(\d{1,4})\s*dias/i,
   ]);
   const guaranteeText = firstMatch(text, [
-    /garantia[^\\n]{0,100}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
+    /garantia[^\n]{0,100}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
   ]);
 
   return {
