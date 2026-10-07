@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
-import { extractContractFromPdf, type ExtractedContract } from './services/pdfContractAnalyzer';
+import { extractContractFromPdf, type ContractObligation, type ExtractedContract } from './services/pdfContractAnalyzer';
 
 const modules = [
   ['Dashboard', '⌂'],
@@ -223,15 +223,28 @@ function ContractModule() {
 }
 
 function PdfAnalysisPanel({ analysis, onClose }: { analysis: ExtractedContract; onClose: () => void }) {
-  const detectedEntries = Object.entries(analysis.detected).filter(([, value]) => value !== undefined);
+  const [saved, setSaved] = useState(false);
+
+  const saveTasks = () => {
+    const existing = JSON.parse(localStorage.getItem('gestao360.contractTasks') ?? '[]') as Array<Record<string, unknown>>;
+    const tasks = analysis.obligations.map(item => ({
+      ...item,
+      contractNumber: analysis.detected.number ?? analysis.fileName,
+      createdAt: new Date().toISOString(),
+      sourceFile: analysis.fileName,
+    }));
+    localStorage.setItem('gestao360.contractTasks', JSON.stringify([...existing, ...tasks]));
+    setSaved(true);
+  };
+
   return (
     <div className="analysis-overlay" role="dialog" aria-modal="true">
       <div className="analysis-panel">
         <div className="analysis-header">
           <div>
-            <span className="eyebrow">MOTOR 360 • LEITURA AUTOMÁTICA</span>
+            <span className="eyebrow">MOTOR 360 • INTELIGÊNCIA CONTRATUAL</span>
             <h2>{analysis.fileName}</h2>
-            <p>{analysis.pages} página(s) analisada(s) · {analysis.obligations.length} regra(s) identificada(s)</p>
+            <p>{analysis.pages} página(s) · {analysis.clauses.length} cláusula(s) segmentada(s) · {analysis.obligations.length} obrigação(ões)</p>
           </div>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
@@ -246,20 +259,42 @@ function PdfAnalysisPanel({ analysis, onClose }: { analysis: ExtractedContract; 
         </div>
 
         <div className="analysis-summary">
-          <div><strong>{analysis.obligations.length}</strong><span>obrigações encontradas</span></div>
-          <div className="critical-summary"><strong>{analysis.obligations.filter(item => item.severity === 'CRÍTICO').length}</strong><span>críticas</span></div>
-          <div><strong>{analysis.obligations.filter(item => item.severity === 'ALTO').length}</strong><span>alta prioridade</span></div>
+          <div><strong>{analysis.clauses.length}</strong><span>cláusulas segmentadas</span></div>
+          <div className="critical-summary"><strong>{analysis.obligations.filter(item => item.severity === 'CRÍTICO').length}</strong><span>obrigações críticas</span></div>
+          <div><strong>{analysis.obligations.filter(item => item.intelligence.confidence === 'ALTA').length}</strong><span>evidências com alta confiança</span></div>
+        </div>
+
+        <div className="ai-action-bar">
+          <div>
+            <strong>Transformar análise em tarefas</strong>
+            <span>Grava as obrigações identificadas no armazenamento local para o próximo ciclo do Motor 360.</span>
+          </div>
+          <button className="primary-button" onClick={saveTasks}>{saved ? '✓ Tarefas salvas' : 'Criar tarefas'}</button>
         </div>
 
         <div className="obligation-list">
-          {analysis.obligations.length ? analysis.obligations.map(item => <ObligationCard key={item.id} item={item} />) : (
-            <div className="pdf-empty">O texto foi extraído, mas nenhuma regra automática foi acionada. O contrato precisa de revisão manual.</div>
+          {analysis.obligations.length ? analysis.obligations.map(item => <ObligationCard key={item.id} item={item} showEvidence />) : (
+            <div className="pdf-empty">O texto foi extraído, mas nenhuma obrigação foi identificada pelas regras atuais. O contrato precisa de revisão manual.</div>
           )}
         </div>
 
+        <div className="clause-list">
+          <div className="section-title-inline">
+            <span className="eyebrow">RASTREABILIDADE</span>
+            <h3>Cláusulas encontradas no documento</h3>
+          </div>
+          {analysis.clauses.slice(0, 20).map(clause => (
+            <article className="clause-card" key={clause.id}>
+              <strong>{clause.heading}</strong>
+              <p>{clause.text}</p>
+              <span>{clause.obligations.length} obrigação(ões) relacionada(s)</span>
+            </article>
+          ))}
+        </div>
+
         <div className="analysis-footer">
-          <strong>Como o Motor 360 está trabalhando nesta versão</strong>
-          <span>O PDF é lido localmente no aplicativo, o texto é extraído e as regras contratuais cadastradas procuram cláusulas e termos relevantes. O resultado deve ser revisado antes de virar obrigação definitiva.</span>
+          <strong>O que mudou no Motor 360</strong>
+          <span>Cada obrigação agora carrega evidência do PDF, cláusula provável, ator, documento, responsável, gatilho, prazo, condição e nível de confiança. Isso cria uma trilha auditável antes da obrigação virar tarefa definitiva.</span>
         </div>
       </div>
     </div>
@@ -300,7 +335,8 @@ function PostSignaturePanel({ contract, onClose }: { contract: Contract; onClose
   );
 }
 
-function ObligationCard({ item }: { item: Obligation }) {
+function ObligationCard({ item, showEvidence = false }: { item: Obligation | ContractObligation; showEvidence?: boolean }) {
+  const intelligence = 'intelligence' in item ? item.intelligence : undefined;
   return (
     <article className="obligation-card">
       <div className="obligation-card-top">
@@ -316,6 +352,22 @@ function ObligationCard({ item }: { item: Obligation }) {
         <span><b>Origem:</b> {item.source}</span>
       </div>
       <p className="obligation-action"><b>Ação:</b> {item.action}</p>
+      {showEvidence && intelligence && (
+        <div className="intelligence-grid">
+          <div><span>Ator</span><strong>{intelligence.actor ?? 'Não identificado'}</strong></div>
+          <div><span>Responsável sugerido</span><strong>{intelligence.responsible ?? 'Não identificado'}</strong></div>
+          <div><span>Documento</span><strong>{intelligence.document ?? 'Não identificado'}</strong></div>
+          <div><span>Condição</span><strong>{intelligence.condition ?? 'Não identificada'}</strong></div>
+          <div><span>Cláusula</span><strong>{intelligence.clause ?? 'Não identificada'}</strong></div>
+          <div><span>Confiança</span><strong>{intelligence.confidence}</strong></div>
+        </div>
+      )}
+      {showEvidence && intelligence?.evidence && (
+        <details className="evidence-box">
+          <summary>Ver evidência extraída do PDF</summary>
+          <p>{intelligence.evidence}</p>
+        </details>
+      )}
     </article>
   );
 }
