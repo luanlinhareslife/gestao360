@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
 
 const modules = [
   ['Dashboard', '⌂'],
   ['Empresas', '♧'],
   ['Contratos', '▤'],
+  ['Obrigações e Alertas', '⚠'],
   ['ART / Responsabilidade Técnica', '✓'],
   ['Diário de Obras', '▣'],
   ['Licitações', '⚖'],
@@ -116,13 +118,184 @@ export default function App() {
             <div className="next-step-card"><div className="next-step-icon">⚡</div><div><strong>Próxima evolução do cadastro</strong><p>Ao abrir uma empresa, o Gestão 360 vai centralizar documentos, responsáveis, contratos, licitações, obras e pendências.</p></div></div>
           </section>
         )}
+        {active === 'Contratos' && <ContractModule />}
+        {active === 'Obrigações e Alertas' && <ObligationModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
-        {!['Dashboard', 'Empresas', 'ART / Responsabilidade Técnica'].includes(active) && (
+        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'ART / Responsabilidade Técnica'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
       </main>
     </div>
   );
+}
+
+function ContractModule() {
+  const [selected, setSelected] = useState<Contract | null>(null);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+
+  const openAnalysis = (contract: Contract) => {
+    setSelected(contract);
+    setAnalysisOpen(true);
+  };
+
+  return (
+    <section className="page contract-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">MOTOR 360 • GESTÃO CONTRATUAL</span>
+          <h1>Contratos</h1>
+          <p>O contrato assinado dispara automaticamente o checklist de pós-assinatura, prazos, gatilhos e alertas.</p>
+        </div>
+        <button className="primary-button">+ Novo contrato</button>
+      </div>
+
+      <div className="contract-principle">
+        <div className="contract-principle-icon">🧠</div>
+        <div>
+          <strong>Fluxo inteligente do Gestão 360</strong>
+          <p>Cadastrar contrato → analisar obrigações → criar tarefas → calcular gatilhos → alertar → acompanhar até concluir.</p>
+        </div>
+      </div>
+
+      <div className="contract-grid">
+        {contracts.map(contract => (
+          <article className="contract-card" key={contract.id}>
+            <div className="contract-card-head">
+              <div>
+                <span className="contract-status">{contract.status}</span>
+                <h2>Contrato nº {contract.number}</h2>
+                <p>Processo {contract.process}</p>
+              </div>
+              <div className="contract-value">
+                <small>Valor contratual</small>
+                <strong>{formatCurrency(contract.value)}</strong>
+              </div>
+            </div>
+
+            <div className="contract-facts">
+              <div><span>Contratante</span><strong>{contract.agency}</strong></div>
+              <div><span>Contratada</span><strong>{contract.contractor}</strong></div>
+              <div><span>Assinatura</span><strong>{contract.signedAt}</strong></div>
+              <div><span>Execução</span><strong>{contract.executionDays} dias</strong></div>
+              <div><span>Garantia</span><strong>{contract.guaranteePercent}% · {formatCurrency(contract.guaranteeValue)}</strong></div>
+              <div><span>Validade</span><strong>{contract.validity}</strong></div>
+            </div>
+
+            <div className="contract-object"><span>Objeto</span><p>{contract.object}</p></div>
+
+            <button className="primary-button contract-analysis-button" onClick={() => openAnalysis(contract)}>
+              Analisar pós-assinatura →
+            </button>
+          </article>
+        ))}
+      </div>
+
+      {analysisOpen && selected && (
+        <PostSignaturePanel contract={selected} onClose={() => setAnalysisOpen(false)} />
+      )}
+    </section>
+  );
+}
+
+function PostSignaturePanel({ contract, onClose }: { contract: Contract; onClose: () => void }) {
+  const items = analyzePostSignature(contract.id);
+  const critical = items.filter(item => item.severity === 'CRÍTICO' || item.severity === 'ALTO').length;
+  return (
+    <div className="analysis-overlay" role="dialog" aria-modal="true">
+      <div className="analysis-panel">
+        <div className="analysis-header">
+          <div>
+            <span className="eyebrow">ANÁLISE PÓS-ASSINATURA</span>
+            <h2>Contrato nº {contract.number}</h2>
+            <p>{contract.process} · {items.length} obrigações identificadas · {critical} de prioridade alta/crítica</p>
+          </div>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+
+        <div className="analysis-summary">
+          <div><strong>{items.length}</strong><span>obrigações</span></div>
+          <div className="critical-summary"><strong>{critical}</strong><span>prioridade alta/crítica</span></div>
+          <div><strong>{items.filter(item => item.status === 'PENDENTE' || item.status === 'VERIFICAÇÃO URGENTE').length}</strong><span>pendências</span></div>
+        </div>
+
+        <div className="obligation-list">
+          {items.map(item => <ObligationCard key={item.id} item={item} />)}
+        </div>
+
+        <div className="analysis-footer">
+          <strong>Regra aplicada pelo Motor 360</strong>
+          <span>O sistema transforma as obrigações contratuais em tarefas acompanháveis, mantendo a cláusula de origem e o gatilho de cada item.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ObligationCard({ item }: { item: Obligation }) {
+  return (
+    <article className="obligation-card">
+      <div className="obligation-card-top">
+        <div>
+          <span className={`severity-badge ${item.severity.toLowerCase()}`}>{item.severity}</span>
+          <h3>{item.title}</h3>
+        </div>
+        <span className={`obligation-status ${item.status.toLowerCase().replace(/\\s+/g, '-')}`}>{item.status}</span>
+      </div>
+      <div className="obligation-meta">
+        <span><b>Gatilho:</b> {item.trigger}</span>
+        <span><b>Prazo:</b> {item.deadline}</span>
+        <span><b>Origem:</b> {item.source}</span>
+      </div>
+      <p className="obligation-action"><b>Ação:</b> {item.action}</p>
+    </article>
+  );
+}
+
+function ObligationModule() {
+  const [filter, setFilter] = useState<'TODAS' | Obligation['status']>('TODAS');
+  const visible = filter === 'TODAS' ? obligations : obligations.filter(item => item.status === filter);
+  const urgent = obligations.filter(item => item.severity === 'CRÍTICO' || item.severity === 'ALTO').length;
+
+  return (
+    <section className="page obligation-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">MOTOR 360 • RADAR PREVENTIVO</span>
+          <h1>Obrigações e Alertas</h1>
+          <p>Centralize tudo que precisa ser feito antes, durante e depois da execução contratual.</p>
+        </div>
+      </div>
+
+      <div className="obligation-summary">
+        <div><span>Total</span><strong>{obligations.length}</strong><small>obrigações cadastradas</small></div>
+        <div><span>Pendentes</span><strong>{obligations.filter(item => item.status === 'PENDENTE' || item.status === 'VERIFICAÇÃO URGENTE').length}</strong><small>exigem ação</small></div>
+        <div className="urgent"><span>Alta prioridade</span><strong>{urgent}</strong><small>críticas ou altas</small></div>
+        <div><span>Em acompanhamento</span><strong>{obligations.filter(item => item.status === 'EM ACOMPANHAMENTO').length}</strong><small>monitoradas pelo sistema</small></div>
+      </div>
+
+      <div className="obligation-toolbar">
+        <div>
+          <span className="eyebrow">CONTRATO Nº 89/2026</span>
+          <h2>Radar de pós-assinatura</h2>
+        </div>
+        <div className="filter-buttons">
+          {(['TODAS', 'PENDENTE', 'VERIFICAÇÃO URGENTE', 'EM ACOMPANHAMENTO'] as const).map(option => (
+            <button key={option} className={filter === option ? 'filter-button active' : 'filter-button'} onClick={() => setFilter(option)}>
+              {option === 'TODAS' ? 'Todas' : option.toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="obligation-list standalone">
+        {visible.map(item => <ObligationCard key={item.id} item={item} />)}
+      </div>
+    </section>
+  );
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function ArtModule() {
