@@ -239,7 +239,7 @@ function ObligationCard({ item }: { item: Obligation }) {
           <span className={`severity-badge ${item.severity.toLowerCase()}`}>{item.severity}</span>
           <h3>{item.title}</h3>
         </div>
-        <span className={`obligation-status ${item.status.toLowerCase().replace(/\\s+/g, '-')}`}>{item.status}</span>
+        <span className={`obligation-status ${item.status.toLowerCase().replace(/\s+/g, '-')}`}>{item.status}</span>
       </div>
       <div className="obligation-meta">
         <span><b>Gatilho:</b> {item.trigger}</span>
