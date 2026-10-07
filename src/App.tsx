@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
+import { extractContractFromPdf, type ExtractedContract } from './services/pdfContractAnalyzer';
 
 const modules = [
   ['Dashboard', '⌂'],
@@ -132,10 +133,27 @@ export default function App() {
 function ContractModule() {
   const [selected, setSelected] = useState<Contract | null>(null);
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [pdfAnalysis, setPdfAnalysis] = useState<ExtractedContract | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   const openAnalysis = (contract: Contract) => {
     setSelected(contract);
     setAnalysisOpen(true);
+  };
+
+  const handleContractPdf = async (file?: File) => {
+    if (!file) return;
+    setPdfError('');
+    setPdfLoading(true);
+    try {
+      const result = await extractContractFromPdf(file);
+      setPdfAnalysis(result);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : 'Não foi possível analisar o PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -146,9 +164,13 @@ function ContractModule() {
           <h1>Contratos</h1>
           <p>O contrato assinado dispara automaticamente o checklist de pós-assinatura, prazos, gatilhos e alertas.</p>
         </div>
-        <button className="primary-button">+ Novo contrato</button>
+        <label className="primary-button upload-contract-button">
+          {pdfLoading ? 'Analisando PDF...' : '📄 Analisar contrato PDF'}
+          <input type="file" accept="application/pdf,.pdf" onChange={event => handleContractPdf(event.target.files?.[0])} />
+        </label>
       </div>
 
+      {pdfError && <div className="pdf-error">{pdfError}</div>}
       <div className="contract-principle">
         <div className="contract-principle-icon">🧠</div>
         <div>
@@ -193,7 +215,54 @@ function ContractModule() {
       {analysisOpen && selected && (
         <PostSignaturePanel contract={selected} onClose={() => setAnalysisOpen(false)} />
       )}
+      {pdfAnalysis && (
+        <PdfAnalysisPanel analysis={pdfAnalysis} onClose={() => setPdfAnalysis(null)} />
+      )}
     </section>
+  );
+}
+
+function PdfAnalysisPanel({ analysis, onClose }: { analysis: ExtractedContract; onClose: () => void }) {
+  const detectedEntries = Object.entries(analysis.detected).filter(([, value]) => value !== undefined);
+  return (
+    <div className="analysis-overlay" role="dialog" aria-modal="true">
+      <div className="analysis-panel">
+        <div className="analysis-header">
+          <div>
+            <span className="eyebrow">MOTOR 360 • LEITURA AUTOMÁTICA</span>
+            <h2>{analysis.fileName}</h2>
+            <p>{analysis.pages} página(s) analisada(s) · {analysis.obligations.length} regra(s) identificada(s)</p>
+          </div>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+
+        <div className="pdf-detected-grid">
+          <div><span>Contrato</span><strong>{analysis.detected.number ?? 'Não identificado'}</strong></div>
+          <div><span>Processo</span><strong>{analysis.detected.process ?? 'Não identificado'}</strong></div>
+          <div><span>Valor</span><strong>{analysis.detected.value ? formatCurrency(analysis.detected.value) : 'Não identificado'}</strong></div>
+          <div><span>Assinatura</span><strong>{analysis.detected.signedAt ?? 'Não identificado'}</strong></div>
+          <div><span>Execução</span><strong>{analysis.detected.executionDays ? `${analysis.detected.executionDays} dias` : 'Não identificado'}</strong></div>
+          <div><span>Garantia</span><strong>{analysis.detected.guaranteePercent ? `${analysis.detected.guaranteePercent}%` : 'Não identificada'}</strong></div>
+        </div>
+
+        <div className="analysis-summary">
+          <div><strong>{analysis.obligations.length}</strong><span>obrigações encontradas</span></div>
+          <div className="critical-summary"><strong>{analysis.obligations.filter(item => item.severity === 'CRÍTICO').length}</strong><span>críticas</span></div>
+          <div><strong>{analysis.obligations.filter(item => item.severity === 'ALTO').length}</strong><span>alta prioridade</span></div>
+        </div>
+
+        <div className="obligation-list">
+          {analysis.obligations.length ? analysis.obligations.map(item => <ObligationCard key={item.id} item={item} />) : (
+            <div className="pdf-empty">O texto foi extraído, mas nenhuma regra automática foi acionada. O contrato precisa de revisão manual.</div>
+          )}
+        </div>
+
+        <div className="analysis-footer">
+          <strong>Como o Motor 360 está trabalhando nesta versão</strong>
+          <span>O PDF é lido localmente no aplicativo, o texto é extraído e as regras contratuais cadastradas procuram cláusulas e termos relevantes. O resultado deve ser revisado antes de virar obrigação definitiva.</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
