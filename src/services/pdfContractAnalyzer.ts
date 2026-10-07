@@ -52,7 +52,7 @@ function detectObligations(text: string) {
   const rules = [
     {
       key: 'art',
-      terms: ['art da execução', 'art de execução', 'art do projeto', 'anotação de responsabilidade técnica', 'art'],
+      terms: ['art da execução', 'art de execução', 'art do projeto', 'anotação de responsabilidade técnica'],
       title: 'Conferir ARTs exigidas pelo contrato',
       trigger: 'Antes do início dos serviços',
       deadline: 'Antes da Ordem de Serviço/início',
