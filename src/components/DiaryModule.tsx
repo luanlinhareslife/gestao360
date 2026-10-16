@@ -176,7 +176,7 @@ export default function DiaryModule() {
   }
 
   function printDiary(record: DiaryRecord) {
-    const popup = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
+    const popup = window.open('', '_blank', 'width=1000,height=800');
     if (!popup) {
       setMessage('Permita janelas pop-up para imprimir o relatório.');
       return;
