@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
 import { extractContractFromPdf, type ContractObligation, type ExtractedContract } from './services/pdfContractAnalyzer';
 
@@ -456,7 +456,7 @@ function AlertasPendenciasModule() {
     }
   };
 
-  const addTask = (event: React.FormEvent<HTMLFormElement>) => {
+  const addTask = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const title = newTitle.trim();
     if (!title) return;
