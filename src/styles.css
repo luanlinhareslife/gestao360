@@ -29,3 +29,32 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .evidence-box{margin-top:9px;border-top:1px solid #e7edf2;padding-top:8px}.evidence-box summary{font-size:8px;font-weight:800;color:#0b4d7d;cursor:pointer}.evidence-box p{font-size:8px;line-height:1.45;color:#6a7d8f;background:#f8fafb;border-radius:6px;padding:8px;margin:6px 0 0}
 .clause-list{margin-top:18px;display:grid;gap:8px}.section-title-inline{padding:2px 0 4px}.section-title-inline h3{margin:4px 0 0;font-size:14px;color:#173957}.clause-card{background:#fff;border:1px solid #dfe7ee;border-radius:9px;padding:11px}.clause-card strong{display:block;font-size:9px;color:#0b4d7d}.clause-card p{margin:5px 0;font-size:8px;line-height:1.45;color:#667b8e}.clause-card>span{font-size:7px;color:#8494a1}
 @media(max-width:900px){.intelligence-grid{grid-template-columns:1fr}.ai-action-bar{align-items:flex-start;flex-direction:column}.ai-action-bar .primary-button{width:100%}}
+
+
+/* Alertas/Pendências — versão desktop */
+.pending-page .pending-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.pending-page .pending-summary>div{background:#fff;border:1px solid #dfe7ee;border-radius:10px;padding:15px}
+.pending-page .pending-summary span,.pending-page .pending-summary small{display:block;color:#657b8f;font-size:10px}
+.pending-page .pending-summary strong{display:block;color:#0b4d7d;font-size:26px;margin:5px 0}
+.pending-page .pending-summary small{font-size:9px}
+.pending-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;align-items:end;gap:12px;padding:17px;background:#fff;border:1px solid #dfe7ee;border-radius:12px;margin-bottom:22px}
+.pending-form label{display:grid;gap:7px;color:#34546d;font-size:10px;font-weight:800}
+.pending-form input{width:100%;min-width:0;height:42px;padding:0 11px;border:1px solid #d6e0e9;border-radius:7px;font:inherit;font-size:12px;color:#183b5a;background:#fff}
+.pending-list-header{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}
+.pending-list-header h2{font-size:17px;color:#173957;margin:0}
+.pending-list-header span{font-size:10px;color:#71859a}
+.pending-task-list{display:grid;gap:9px}
+.pending-task-card{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border:1px solid #dfe7ee;border-radius:10px;padding:13px 15px}
+.pending-task-copy{display:grid;gap:5px;min-width:0}
+.pending-task-copy strong{font-size:12px;color:#173957;line-height:1.45}
+.pending-task-copy span{font-size:9px;color:#71859a;line-height:1.4}
+.pending-task-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pending-task-actions select{min-width:135px;height:36px;padding:0 8px;border:1px solid #cbd8e3;border-radius:7px;background:#fff;color:#284a65;font:inherit;font-size:10px}
+.delete-pending-button{height:36px;border:1px solid #efcaca;border-radius:7px;background:#fff6f6;color:#a32626;padding:0 10px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.delete-pending-button:hover{background:#fdeaea}
+.pending-task-card.completed{background:#f8fafb;opacity:.75}
+.pending-task-card.completed .pending-task-copy strong{text-decoration:line-through;color:#66798a}
+.pending-empty{background:#fff;border:1px dashed #cbd8e3;border-radius:10px;padding:28px;text-align:center;color:#71859a;font-size:12px}
+.pending-note{margin-top:15px;padding:12px 14px;border-radius:8px;background:#edf6fc;border:1px solid #dce9f3;color:#657b8f;font-size:10px;line-height:1.55}
+@media(max-width:1250px){.pending-form{grid-template-columns:1fr 1fr}.pending-form .primary-button{grid-column:1/-1;justify-self:start}}
+@media(max-width:900px){.pending-page .pending-summary{grid-template-columns:1fr}.pending-form{grid-template-columns:1fr}.pending-form .primary-button{grid-column:auto}.pending-task-card{align-items:stretch;flex-direction:column}.pending-task-actions{width:100%}.pending-task-actions select{flex:1}}
