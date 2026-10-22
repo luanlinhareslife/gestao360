@@ -7,6 +7,7 @@ const modules = [
   ['Empresas', '♧'],
   ['Contratos', '▤'],
   ['Obrigações e Alertas', '⚠'],
+  ['Alertas/Pendências', '🔔'],
   ['ART / Responsabilidade Técnica', '✓'],
   ['Diário de Obras', '▣'],
   ['Licitações', '⚖'],
@@ -121,8 +122,9 @@ export default function App() {
         )}
         {active === 'Contratos' && <ContractModule />}
         {active === 'Obrigações e Alertas' && <ObligationModule />}
+        {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
-        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'ART / Responsabilidade Técnica'].includes(active) && (
+        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
       </main>
@@ -369,6 +371,163 @@ function ObligationCard({ item, showEvidence = false }: { item: Obligation | Con
         </details>
       )}
     </article>
+  );
+}
+
+
+type PendingTask = {
+  id: string;
+  title: string;
+  category: string;
+  status: 'Pendente' | 'Em andamento' | 'Concluída';
+  origin: string;
+  createdAt: string;
+};
+
+const initialPendingTasks: PendingTask[] = [
+  { title: 'Atualizar planilha de aditivo — Ponte de Ji-Paraná', category: 'Ponte de Ji-Paraná' },
+  { title: 'Fazer o diário de obra online — Ponte de Ji-Paraná', category: 'Ponte de Ji-Paraná' },
+  { title: 'Organizar força-tarefa online — Ponte de Ji-Paraná', category: 'Ponte de Ji-Paraná' },
+  { title: 'Revisar a planilha de ataque — Ponte de Ji-Paraná (confirmar descrição)', category: 'Ponte de Ji-Paraná' },
+  { title: 'Emitir ART — pendência anotada em “Bruno”', category: 'ART / Documentação' },
+  { title: 'Emitir os demais documentos necessários — anotação “Bruno”', category: 'ART / Documentação' },
+  { title: 'Acompanhar medições — IDEP', category: 'IDEP' },
+  { title: 'Acompanhar emissão do atestado solicitado em 30/09 — SETUR', category: 'SETUR / Atestados' },
+  { title: 'Verificar registro pendente — PF/RO (anotação incompleta)', category: 'PF/RO' },
+  { title: 'Registrar/solicitar atestado — Ponte Vale do Paraíso', category: 'Ponte Vale do Paraíso' },
+  { title: 'Acompanhar atestado solicitado em 13/03; retorno anotado para 30/09 — EHEMERON', category: 'EHEMERON / Atestados' },
+  { title: 'Acompanhar atestado solicitado em 01/10 — EHEMERON / Guajará', category: 'EHEMERON / Atestados' },
+  { title: 'Responder à intimação fiscal — MM e Terra Forte (confirmar prazo)', category: 'MM / Terra Forte' },
+  { title: 'Verificar ISS — confirmar empresa e pendência anotada', category: 'Fiscal / Tributos' },
+  { title: 'Verificar contratos relacionados às ARTs de aditivo', category: 'ART / Contratos' },
+  { title: 'Corrigir atestados', category: 'Atestados' },
+  { title: 'Preparar resposta de processo — Rondônia (detalhar número/assunto)', category: 'Processos' },
+  { title: 'Verificar pendências da SEDUC', category: 'SEDUC' },
+  { title: 'Verificar processos do TCE', category: 'TCE' },
+  { title: 'Conferir PAE/BDI e medição; anotação indica ofício enviado', category: 'Medições / PAE' },
+  { title: 'Verificar contratos com ARTs elétricas', category: 'ART / Contratos' },
+  { title: 'Conferir documentos para concluir medição da ponte e do presídio', category: 'Medições' },
+  { title: 'Responder e-mail com documentação', category: 'Documentação' },
+  { title: 'Pedir e registrar atestados', category: 'Atestados' },
+  { title: 'Solicitar liberação de saldo da fonte vinculada — PF/AC', category: 'PF/AC' },
+  { title: 'Conferir notas referentes aos valores de repactuação — PF/AC', category: 'PF/AC / Repactuação' },
+  { title: 'Solicitar atestados após conclusão — PF/AC', category: 'PF/AC / Atestados' },
+  { title: 'Responder e-mail com documentação — PF/AC', category: 'PF/AC' },
+  { title: 'Verificar ART de aditivo — APOEL', category: 'APOEL / ART' },
+  { title: 'Acompanhar medições — confirmar siglas anotadas', category: 'Medições' },
+  { title: 'Acompanhar solicitação de atestado — SETUR', category: 'SETUR / Atestados' },
+  { title: 'Solicitar atualização dos atestados — confirmar sigla do órgão', category: 'Atestados' },
+  { title: 'Conferir planilha/CT e providências de realinhamento — Defensoria', category: 'Defensoria' },
+  { title: 'Acompanhar prazo judicial — Defensoria (confirmar referência)', category: 'Defensoria' },
+  { title: 'Verificar período/validade dos atestados — confirmar órgão anotado', category: 'Atestados' },
+  { title: 'Conferir ordem de serviço CT nº 24 e início anotado para 21/10', category: 'Ordem de Serviço' },
+].map((task, index) => ({
+  ...task,
+  id: 'seed-' + (index + 1),
+  status: 'Pendente' as const,
+  origin: 'Anotações manuscritas importadas',
+  createdAt: '2026-10-22T08:00:00.000Z',
+}));
+
+function loadPendingTasks(): PendingTask[] {
+  try {
+    const saved = localStorage.getItem('gestao360.alertasPendencias');
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed as PendingTask[];
+    }
+  } catch {
+    // Se o armazenamento estiver indisponível, usa a lista inicial.
+  }
+  return initialPendingTasks;
+}
+
+function AlertasPendenciasModule() {
+  const [tasks, setTasks] = useState<PendingTask[]>(loadPendingTasks);
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+
+  const persist = (next: PendingTask[]) => {
+    setTasks(next);
+    try {
+      localStorage.setItem('gestao360.alertasPendencias', JSON.stringify(next));
+    } catch {
+      window.alert('Não foi possível salvar no armazenamento local deste computador.');
+    }
+  };
+
+  const addTask = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const title = newTitle.trim();
+    if (!title) return;
+    const task: PendingTask = {
+      id: 'task-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+      title,
+      category: newCategory.trim() || 'Geral',
+      status: 'Pendente',
+      origin: 'Cadastro manual',
+      createdAt: new Date().toISOString(),
+    };
+    persist([task, ...tasks]);
+    setNewTitle('');
+    setNewCategory('');
+  };
+
+  const changeStatus = (task: PendingTask, status: PendingTask['status']) => {
+    persist(tasks.map(item => item.id === task.id ? { ...item, status } : item));
+  };
+
+  const deleteTask = (task: PendingTask) => {
+    if (!window.confirm('Excluir definitivamente esta pendência?\n\n' + task.title)) return;
+    persist(tasks.filter(item => item.id !== task.id));
+  };
+
+  const openCount = tasks.filter(task => task.status !== 'Concluída').length;
+
+  return (
+    <section className="page pending-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">GESTÃO 360 • ACOMPANHAMENTO DIÁRIO</span>
+          <h1>Alertas/Pendências</h1>
+          <p>Centralize suas tarefas, acompanhe o andamento e remova itens somente após confirmar.</p>
+        </div>
+      </div>
+
+      <div className="pending-summary">
+        <div><span>Pendências abertas</span><strong>{openCount}</strong><small>Itens que ainda exigem atenção</small></div>
+        <div><span>Em andamento</span><strong>{tasks.filter(task => task.status === 'Em andamento').length}</strong><small>Em acompanhamento</small></div>
+        <div><span>Concluídas</span><strong>{tasks.filter(task => task.status === 'Concluída').length}</strong><small>Finalizadas por você</small></div>
+      </div>
+
+      <form className="pending-form" onSubmit={addTask}>
+        <label>Nova pendência<input value={newTitle} onChange={event => setNewTitle(event.target.value)} placeholder="Descreva a tarefa..." required /></label>
+        <label>Órgão / categoria<input value={newCategory} onChange={event => setNewCategory(event.target.value)} placeholder="Ex.: SEDUC, IDEP, ART..." /></label>
+        <button className="primary-button" type="submit">+ Adicionar pendência</button>
+      </form>
+
+      <div className="pending-list-header"><h2>Lista de tarefas</h2><span>{tasks.length} item(ns)</span></div>
+      <div className="pending-task-list">
+        {tasks.map(task => (
+          <article className={'pending-task-card' + (task.status === 'Concluída' ? ' completed' : '')} key={task.id}>
+            <div className="pending-task-copy">
+              <strong>{task.title}</strong>
+              <span>{task.category} · {task.origin}</span>
+            </div>
+            <div className="pending-task-actions">
+              <select aria-label={'Status da pendência: ' + task.title} value={task.status} onChange={event => changeStatus(task, event.target.value as PendingTask['status'])}>
+                <option value="Pendente">Pendente</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="Concluída">Concluída</option>
+              </select>
+              <button type="button" className="delete-pending-button" onClick={() => deleteTask(task)} aria-label={'Excluir pendência: ' + task.title} title="Excluir pendência">🗑 Excluir</button>
+            </div>
+          </article>
+        ))}
+        {!tasks.length && <div className="pending-empty">Nenhuma pendência cadastrada. Use o formulário acima para adicionar uma tarefa.</div>}
+      </div>
+      <p className="pending-note">As descrições importadas de anotações manuscritas podem precisar de conferência. Os dados desta lista são guardados localmente neste computador e não são sincronizados automaticamente com a versão online.</p>
+    </section>
   );
 }
 
