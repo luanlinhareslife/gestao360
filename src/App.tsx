@@ -12,6 +12,7 @@ const modules = [
   ['Alertas/Pendências', '🔔'],
   ['ART / Responsabilidade Técnica', '✓'],
   ['Diário de Obras', '▣'],
+  ['Medições', '▥'],
   ['Licitações', '⚖'],
   ['Documentos', '□'],
   ['Financeiro', '▥'],
@@ -96,7 +97,7 @@ export default function App() {
           </div>
         </header>
 
-        {active === 'Dashboard' && <Dashboard />}
+        {active === 'Dashboard' && <Dashboard onNavigate={setActive} />}
         {active === 'Empresas' && (
           <section className="page">
             <div className="page-heading">
@@ -128,7 +129,8 @@ export default function App() {
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
         {active === 'Licitações' && <LicitacoesModule />}
         {active === 'Diário de Obras' && <Diario360Module />}
-        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações', 'Diário de Obras'].includes(active) && (
+        {active === 'Medições' && <MedicoesModule onOpenDiaries={() => setActive('Diário de Obras')} />}
+        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações', 'Diário de Obras', 'Medições'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
       </main>
@@ -651,7 +653,7 @@ function ArtModule() {
   );
 }
 
-function Dashboard() {
+function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
   return (
     <>
       <section className="hero">
@@ -663,11 +665,45 @@ function Dashboard() {
         <div className="hero-strip">PESSOAS | PROCESSOS | TECNOLOGIA | CRESCIMENTO</div>
       </section>
       <section className="welcome-row"><div className="welcome"><div className="sun">☼</div><div><h3>Bem-vindo, Luan!</h3><p>Aqui é onde grandes obras começam com uma boa gestão.</p></div></div><div className="date-card"><span>▣</span><div><strong>Segunda-feira, 28 de Setembro de 2026</strong><small>"Disciplina hoje, grandes resultados amanhã."</small></div></div></section>
-      <section className="metrics"><Metric icon="▤" title="Contratos Ativos" value="12" tone="blue" /><Metric icon="▣" title="Obras em Execução" value="5" tone="green" /><Metric icon="◷" title="Pendências" value="8" tone="yellow" /><Metric icon="✓" title="ART / RT" value="Acessar" tone="purple" /></section>
+      <section className="metrics">
+        <Metric icon="▤" title="Contratos Ativos" value="12" tone="blue" onClick={() => onNavigate('Contratos')} />
+        <Metric icon="▣" title="Obras em Execução" value="5" tone="green" onClick={() => onNavigate('Obras')} />
+        <Metric icon="◷" title="Pendências" value="8" tone="yellow" onClick={() => onNavigate('Alertas/Pendências')} />
+        <Metric icon="✓" title="ART / RT" value="Acessar" tone="purple" onClick={() => onNavigate('ART / Responsabilidade Técnica')} />
+      </section>
+      <section className="dashboard-shortcuts">
+        <div className="dashboard-shortcuts-heading"><span className="eyebrow">ACESSO RÁPIDO</span><h2>O que você deseja gerenciar?</h2></div>
+        <div className="dashboard-shortcuts-grid">
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Licitações')}><span>⚖</span><div><strong>Licitações</strong><small>Editais, checklist e prazos</small></div><b>›</b></button>
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Medições')}><span>▥</span><div><strong>Medições</strong><small>Diários e acompanhamento de medições</small></div><b>›</b></button>
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Diário de Obras')}><span>▣</span><div><strong>Diário de Obras</strong><small>Registros, fotos e execução</small></div><b>›</b></button>
+        </div>
+      </section>
     </>
   );
 }
 
-function Metric({ icon, title, value, tone }: { icon: string; title: string; value: string; tone: string }) {
-  return <button className={`metric ${tone}`}><span className="metric-icon">{icon}</span><div><small>{title}</small><strong>{value}</strong></div><b>›</b></button>;
+function Metric({ icon, title, value, tone, onClick }: { icon: string; title: string; value: string; tone: string; onClick: () => void }) {
+  return <button className={`metric ${tone}`} onClick={onClick}><span className="metric-icon">{icon}</span><div><small>{title}</small><strong>{value}</strong></div><b>›</b></button>;
+}
+
+function MedicoesModule({ onOpenDiaries }: { onOpenDiaries: () => void }) {
+  return (
+    <section className="page measurements-page">
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">GESTÃO 360 • EXECUÇÃO E FATURAMENTO</span>
+          <h1>Medições</h1>
+          <p>Centralize os registros de execução que dão suporte às medições dos contratos.</p>
+        </div>
+        <button className="primary-button" onClick={onOpenDiaries}>Acessar diários de obra →</button>
+      </div>
+      <div className="measurement-flow">
+        <article><span>01</span><div><strong>Diário de obra</strong><p>Registre serviços executados, ocorrências e fotografias na aplicação Diário 360 já utilizada pela equipe.</p><button className="outline-button" onClick={onOpenDiaries}>Abrir Diário 360</button></div></article>
+        <article><span>02</span><div><strong>Conferência da medição</strong><p>Organize os registros e evidências que serão conferidos antes do envio da medição ao contratante.</p><small>Central de conferência — próxima etapa de desenvolvimento</small></div></article>
+        <article><span>03</span><div><strong>Relatório e protocolo</strong><p>Prepare o acompanhamento do envio, aprovação e faturamento de cada medição.</p><small>Controle de protocolo — próxima etapa de desenvolvimento</small></div></article>
+      </div>
+      <div className="measurement-note"><strong>Integração preservada</strong><p>O Diário 360 continua sendo a aplicação oficial e mantém sua base online atual. Esta tela funciona como ponto de entrada da área de medições; não duplica nem altera os registros existentes.</p></div>
+    </section>
+  );
 }
