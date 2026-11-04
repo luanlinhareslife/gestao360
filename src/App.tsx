@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
 import { extractContractFromPdf, type ContractObligation, type ExtractedContract } from './services/pdfContractAnalyzer';
+import LicitacoesModule from './modules/LicitacoesModule';
 
 const modules = [
   ['Dashboard', '⌂'],
@@ -124,7 +125,8 @@ export default function App() {
         {active === 'Obrigações e Alertas' && <ObligationModule />}
         {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
-        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica'].includes(active) && (
+        {active === 'Licitações' && <LicitacoesModule />}
+        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
       </main>
