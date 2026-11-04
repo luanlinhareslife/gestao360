@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { analyzePostSignature, contracts, obligations, type Contract, type Obligation } from './data/contracts';
 import { extractContractFromPdf, type ContractObligation, type ExtractedContract } from './services/pdfContractAnalyzer';
 import LicitacoesModule from './modules/LicitacoesModule';
