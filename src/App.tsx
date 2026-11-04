@@ -3,6 +3,7 @@ import { analyzePostSignature, contracts, obligations, type Contract, type Oblig
 import { extractContractFromPdf, type ContractObligation, type ExtractedContract } from './services/pdfContractAnalyzer';
 import LicitacoesModule from './modules/LicitacoesModule';
 import Diario360Module from './modules/Diario360Module';
+import EmpresasModule from './modules/EmpresasModule';
 
 const modules = [
   ['Dashboard', '⌂'],
@@ -62,14 +63,6 @@ const timeline = [
 
 export default function App() {
   const [active, setActive] = useState('Dashboard');
-  const [query, setQuery] = useState('');
-
-  const filteredCompanies = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return companies;
-    return companies.filter(company => Object.values(company).some(value => String(value).toLowerCase().includes(term)));
-  }, [query]);
-
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -97,31 +90,7 @@ export default function App() {
         </header>
 
         {active === 'Dashboard' && <Dashboard onNavigate={setActive} />}
-        {active === 'Empresas' && (
-          <section className="page">
-            <div className="page-heading">
-              <div><span className="eyebrow">CADASTRO CENTRAL</span><h1>Empresas</h1><p>Cadastre e acompanhe as empresas que fazem parte da gestão.</p></div>
-              <button className="primary-button">+ Nova empresa</button>
-            </div>
-            <div className="company-toolbar">
-              <div className="search-box">⌕<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por empresa, CNPJ ou cidade..." /></div>
-              <div className="toolbar-count">{filteredCompanies.length} empresa(s)</div>
-            </div>
-            <div className="company-grid">
-              {filteredCompanies.map(company => (
-                <article className="company-card" key={company.cnpj}>
-                  <div className="company-card-top"><div className="company-logo">⚙</div><span className="status-pill">{company.status}</span></div>
-                  <h3>{company.name}</h3>
-                  <p className="cnpj">{company.cnpj}</p>
-                  <p className="city-line">⌖ {company.city}</p>
-                  <div className="company-stats"><div><strong>{company.contracts}</strong><span>Contratos</span></div><div><strong>{company.works}</strong><span>Obras</span></div></div>
-                  <button className="outline-button">Abrir empresa →</button>
-                </article>
-              ))}
-            </div>
-            <div className="next-step-card"><div className="next-step-icon">⚡</div><div><strong>Próxima evolução do cadastro</strong><p>Ao abrir uma empresa, o Gestão 360 vai centralizar documentos, responsáveis, contratos, licitações, obras e pendências.</p></div></div>
-          </section>
-        )}
+        {active === 'Empresas' && <EmpresasModule />}
         {active === 'Contratos' && <ContractModule />}
         {active === 'Obrigações e Alertas' && <ObligationModule />}
         {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
