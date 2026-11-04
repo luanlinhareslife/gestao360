@@ -11,7 +11,6 @@ const modules = [
   ['Obrigações e Alertas', '⚠'],
   ['Alertas/Pendências', '🔔'],
   ['ART / Responsabilidade Técnica', '✓'],
-  ['Diário de Obras', '▣'],
   ['Medições', '▥'],
   ['Licitações', '⚖'],
   ['Documentos', '□'],
@@ -128,9 +127,8 @@ export default function App() {
         {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
         {active === 'Licitações' && <LicitacoesModule />}
-        {active === 'Diário de Obras' && <Diario360Module />}
-        {active === 'Medições' && <MedicoesModule onOpenDiaries={() => setActive('Diário de Obras')} />}
-        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações', 'Diário de Obras', 'Medições'].includes(active) && (
+        {active === 'Medições' && <Diario360Module />}
+        {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações', 'Medições'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
       </main>
