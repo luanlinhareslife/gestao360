@@ -223,3 +223,15 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .hero-emblem{background:rgba(255,255,255,.14);overflow:hidden}
 .hero-emblem .brand-gear{width:82%;height:82%;color:#123a62}
 @media(max-width:900px){.hero-emblem .brand-gear{width:82%;height:82%}}
+
+
+/* Identidade oficial: aplicar o arquivo de marca enviado pelo usuário */
+.brand-panel{height:78px;padding:7px 10px;justify-content:flex-start}
+.brand-logo-image{display:block;width:100%;max-width:218px;height:62px;object-fit:contain;object-position:left center}
+.hero-copy{left:clamp(22px,3.6vw,58px);top:50%;transform:translateY(-50%);display:flex;align-items:center;z-index:5}
+.hero-logo-image{display:block;width:clamp(430px,46vw,690px);max-height:190px;height:auto;object-fit:contain;object-position:left center;filter:drop-shadow(0 1px 1px rgba(255,255,255,.12))}
+.hero-message{right:clamp(20px,2.5vw,42px);top:50%;transform:translateY(-50%);max-width:250px}
+.hero-strip{right:22px;bottom:7px}
+.brand-emblem,.brand-copy,.hero-emblem,.hero-divider{display:none!important}
+@media(max-width:1100px){.hero-logo-image{width:clamp(340px,48vw,520px)}.hero-message{max-width:190px}.hero-message strong{font-size:11px}.hero-message em{font-size:18px}}
+@media(max-width:760px){.brand-logo-image{max-width:185px}.hero-logo-image{width:min(72vw,420px)}.hero-message{display:none}}
