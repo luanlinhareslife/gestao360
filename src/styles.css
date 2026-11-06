@@ -214,3 +214,12 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .recent-dot.critical{background:#d83c3c}
 @media(max-width:1200px){.dashboard-shortcuts-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-lower-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.dashboard-shortcuts-grid{grid-template-columns:1fr}.dashboard-contract-row{flex-wrap:wrap}.dashboard-contract-value{margin-left:47px}}
+
+
+/* Símbolo institucional Gestão 360: engrenagem + edifício */
+.brand-emblem,.hero-emblem{display:grid;place-items:center}
+.brand-emblem{border-radius:50%;overflow:hidden}
+.brand-gear{display:block;width:78%;height:78%;color:#123a62;overflow:visible}
+.hero-emblem{background:rgba(255,255,255,.14);overflow:hidden}
+.hero-emblem .brand-gear{width:82%;height:82%;color:#123a62}
+@media(max-width:900px){.hero-emblem .brand-gear{width:82%;height:82%}}
