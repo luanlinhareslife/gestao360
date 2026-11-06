@@ -169,7 +169,7 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 
 
 /* Ajuste visual imediato do banner: remover o cenário geométrico provisório e recuperar a marca */
-.hero{height:220px;background:linear-gradient(110deg,#d9e9f3 0%,#edf4f7 43%,#f4e4c9 100%);border-bottom:6px solid #0b3153}
+.hero{height:220px;background:#d9e9f3 url('/gestao360-banner.jpg') center 48%/cover no-repeat;border-bottom:6px solid #0b3153}
 .hero .sky-glow,.hero .mountain,.hero .city,.hero .building,.hero .crane{display:none}
 .hero-copy,.hero-message,.hero-strip{display:flex}
 .hero-copy{left:clamp(24px,4vw,68px);top:50%;transform:translateY(-50%);align-items:center}
