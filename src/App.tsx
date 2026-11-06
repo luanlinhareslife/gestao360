@@ -67,7 +67,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-panel">
-          <div className="brand-emblem"><span>⚙</span><b>▥</b></div>
+          <div className="brand-emblem"><svg className="brand-gear" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="29" cy="25" r="15"/><circle cx="29" cy="25" r="5"/><path d="M29 5v5M29 40v5M9 25h5M44 25h5M15 11l4 4M39 35l4 4M43 11l-4 4M19 35l-4 4"/><path d="M22 48V37h14v11M26 48V40M32 48V40M20 54h18"/></g></svg></div>
           <div className="brand-copy"><strong>GESTÃO 360</strong><span>GESTÃO DE EMPRESAS<br />DE ENGENHARIA CIVIL</span></div>
         </div>
         <button className="context-button"><span>▣</span><strong>Gestão por exceção<br />Motor 360 ativo</strong></button>
@@ -632,7 +632,7 @@ function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
         <div className="sky-glow" /><div className="mountain" /><div className="city" />
         <div className="building"><div className="building-grid" /></div>
         <div className="crane"><span className="crane-mast" /><span className="crane-arm" /><span className="crane-cable" /></div>
-        <div className="hero-copy"><div className="hero-emblem">⚙<b>▥</b></div><div className="hero-divider" /><div><h1>GESTÃO 360</h1><h2>GESTÃO DE EMPRESAS DE ENGENHARIA CIVIL</h2><p>PLANEJAMENTO&nbsp;&nbsp;•&nbsp;&nbsp;CONTROLE&nbsp;&nbsp;•&nbsp;&nbsp;EXECUÇÃO&nbsp;&nbsp;•&nbsp;&nbsp;RESULTADOS</p></div></div>
+        <div className="hero-copy"><div className="hero-emblem"><svg className="brand-gear" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="29" cy="25" r="15"/><circle cx="29" cy="25" r="5"/><path d="M29 5v5M29 40v5M9 25h5M44 25h5M15 11l4 4M39 35l4 4M43 11l-4 4M19 35l-4 4"/><path d="M22 48V37h14v11M26 48V40M32 48V40M20 54h18"/></g></svg></div><div className="hero-divider" /><div><h1>GESTÃO 360</h1><h2>GESTÃO DE EMPRESAS DE ENGENHARIA CIVIL</h2><p>PLANEJAMENTO&nbsp;&nbsp;•&nbsp;&nbsp;CONTROLE&nbsp;&nbsp;•&nbsp;&nbsp;EXECUÇÃO&nbsp;&nbsp;•&nbsp;&nbsp;RESULTADOS</p></div></div>
         <div className="hero-message"><strong>OBRAS<br />MAIS ORGANIZADAS<br />CONSTROEM<br />GRANDES RESULTADOS</strong><em>Hoje<br />construímos<br />o amanhã</em></div>
         <div className="hero-strip">PESSOAS | PROCESSOS | TECNOLOGIA | CRESCIMENTO</div>
       </section>
