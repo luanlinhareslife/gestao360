@@ -621,6 +621,11 @@ function ArtModule() {
 }
 
 function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
+  const pending = obligations.filter(item => item.status !== 'CONCLUÍDA');
+  const urgent = obligations.filter(item => item.status === 'VERIFICAÇÃO URGENTE' || item.severity === 'CRÍTICO');
+  const measurementTasks = obligations.filter(item => item.title.toLowerCase().includes('medição'));
+  const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
   return (
     <>
       <section className="hero">
@@ -631,20 +636,42 @@ function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
         <div className="hero-message"><strong>OBRAS<br />MAIS ORGANIZADAS<br />CONSTROEM<br />GRANDES RESULTADOS</strong><em>Hoje<br />construímos<br />o amanhã</em></div>
         <div className="hero-strip">PESSOAS | PROCESSOS | TECNOLOGIA | CRESCIMENTO</div>
       </section>
-      <section className="welcome-row"><div className="welcome"><div className="sun">☼</div><div><h3>Bem-vindo, Luan!</h3><p>Aqui é onde grandes obras começam com uma boa gestão.</p></div></div><div className="date-card"><span>▣</span><div><strong>Segunda-feira, 28 de Setembro de 2026</strong><small>"Disciplina hoje, grandes resultados amanhã."</small></div></div></section>
+      <section className="welcome-row"><div className="welcome"><div className="sun">☼</div><div><h3>Bem-vindo, Luan!</h3><p>Aqui é onde grandes obras começam com uma boa gestão.</p></div></div><div className="date-card"><span>▣</span><div><strong>{today}</strong><small>"Disciplina hoje, grandes resultados amanhã."</small></div></div></section>
       <section className="metrics">
-        <Metric icon="▤" title="Contratos Ativos" value="12" tone="blue" onClick={() => onNavigate('Contratos')} />
-        <Metric icon="▣" title="Obras em Execução" value="5" tone="green" onClick={() => onNavigate('Obras')} />
-        <Metric icon="◷" title="Pendências" value="8" tone="yellow" onClick={() => onNavigate('Alertas/Pendências')} />
-        <Metric icon="✓" title="ART / RT" value="Acessar" tone="purple" onClick={() => onNavigate('ART / Responsabilidade Técnica')} />
+        <Metric icon="▤" title="Contratos cadastrados" value={String(contracts.length)} tone="blue" onClick={() => onNavigate('Contratos')} />
+        <Metric icon="▣" title="Obras em execução" value="Em estruturação" tone="green" onClick={() => onNavigate('Contratos')} />
+        <Metric icon="◷" title="Obrigações pendentes" value={String(pending.length)} tone="yellow" onClick={() => onNavigate('Obrigações e Alertas')} />
+        <Metric icon="✓" title="Alertas críticos" value={String(urgent.length)} tone="purple" onClick={() => onNavigate('Alertas/Pendências')} />
       </section>
       <section className="dashboard-shortcuts">
         <div className="dashboard-shortcuts-heading"><span className="eyebrow">ACESSO RÁPIDO</span><h2>O que você deseja gerenciar?</h2></div>
         <div className="dashboard-shortcuts-grid">
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Empresas')}><span>♧</span><div><strong>Empresas</strong><small>Cadastros e documentos</small></div><b>›</b></button>
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Contratos')}><span>▤</span><div><strong>Contratos</strong><small>Obrigações, prazos e pastas</small></div><b>›</b></button>
           <button className="dashboard-shortcut" onClick={() => onNavigate('Licitações')}><span>⚖</span><div><strong>Licitações</strong><small>Editais, checklist e prazos</small></div><b>›</b></button>
-          <button className="dashboard-shortcut" onClick={() => onNavigate('Medições')}><span>▥</span><div><strong>Medições</strong><small>Diários e acompanhamento de medições</small></div><b>›</b></button>
-          <button className="dashboard-shortcut" onClick={() => onNavigate('Diário de Obras')}><span>▣</span><div><strong>Diário de Obras</strong><small>Registros, fotos e execução</small></div><b>›</b></button>
+          <button className="dashboard-shortcut" onClick={() => onNavigate('Medições')}><span>▥</span><div><strong>Medições</strong><small>Diário de obras e planilhas</small></div><b>›</b></button>
         </div>
+      </section>
+      <section className="dashboard-lower-grid">
+        <article className="dashboard-panel works-panel">
+          <div className="dashboard-panel-heading"><div><span className="eyebrow">ACOMPANHAMENTO</span><h2>Contratos em andamento</h2></div><button onClick={() => onNavigate('Contratos')}>Ver contratos →</button></div>
+          {contracts.length ? contracts.map(contract => <div className="dashboard-contract-row" key={contract.id}>
+            <span className="dashboard-row-icon">▤</span><div className="dashboard-contract-main"><strong>Contrato nº {contract.number}</strong><small>{contract.agency}</small><small>{contract.contractor}</small></div><span className="dashboard-contract-status">{contract.status}</span><strong className="dashboard-contract-value">{formatCurrency(contract.value)}</strong>
+          </div>) : <div className="dashboard-empty">Nenhum contrato cadastrado.</div>}
+        </article>
+        <article className="dashboard-panel summary-panel">
+          <div className="dashboard-panel-heading"><div><span className="eyebrow">VISÃO GERAL</span><h2>Resumo geral</h2></div></div>
+          <div className="dashboard-summary-grid">
+            <div className="summary-tile blue"><strong>{contracts.length}</strong><span>Contratos cadastrados</span></div>
+            <div className="summary-tile green"><strong>{obligations.length}</strong><span>Obrigações mapeadas</span></div>
+            <div className="summary-tile purple"><strong>{pending.length}</strong><span>Pendências abertas</span></div>
+            <div className="summary-tile amber"><strong>{measurementTasks.length}</strong><span>Obrigações de medição</span></div>
+          </div>
+          <div className="dashboard-panel-heading recent-heading"><div><span className="eyebrow">MOTOR 360</span><h2>Atividades e próximos cuidados</h2></div><button onClick={() => onNavigate('Obrigações e Alertas')}>Ver todas →</button></div>
+          <div className="dashboard-recent-list">
+            {obligations.slice(0,3).map(item => <div className="dashboard-recent-item" key={item.id}><span className={item.severity === 'CRÍTICO' ? 'recent-dot critical' : 'recent-dot'} /><div><strong>{item.title}</strong><small>{item.deadline} · {item.status}</small></div></div>)}
+          </div>
+        </article>
       </section>
     </>
   );
