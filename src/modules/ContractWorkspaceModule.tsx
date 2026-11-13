@@ -82,7 +82,7 @@ export default function ContractWorkspaceModule() {
   const handleScheduleUpload = async (file?: File) => {
     if (!file || !selected) return;
     setUploadError('');
-    const allowed = /\\.(pdf|xlsx?|xls)$/i.test(file.name);
+    const allowed = /\.(pdf|xlsx?)$/i.test(file.name);
     if (!allowed) { setUploadError('Envie um arquivo PDF, XLS ou XLSX.'); return; }
     if (file.size > 30 * 1024 * 1024) { setUploadError('O arquivo deve ter até 30 MB.'); return; }
     setUploading(true);
