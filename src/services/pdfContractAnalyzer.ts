@@ -481,10 +481,15 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
     /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[^R$]{0,100}R$\s*([0-9.]+,[0-9]{2})/i,
     /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R$\s*([0-9.]+,[0-9]{2})/i,
   ]);
-  const signedAt = firstMatch(text.slice(0, 26000), [
-    /(?:data\s+da\s+assinatura|assinado\s+em|celebrado\s+em)[^0-9]{0,60}(\d{2}\/\d{2}\/\d{4})/i,
-    /(?:Porto Velho|Ji-Paraná)[^0-9]{0,80}(\d{2}\/\d{2}\/\d{4})/i,
-  ]);
+  const signatureStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula vigésima quarta');
+  const signatureBlock = signatureStart >= 0 ? text.slice(signatureStart) : text;
+  const partySignatures = [...signatureBlock.matchAll(/Documento\s+assinado\s+eletronicamente\s+por\s+([^,\n]{3,100})[^\n]{0,180}?\bem\s+(\d{2}\/\d{2}\/\d{4})/gi)]
+    .filter(match => !/procurador\s+do\s+estado/i.test(match[0]));
+  const signedAt = partySignatures.length
+    ? partySignatures[partySignatures.length - 1][2]
+    : firstMatch(text.slice(0, 26000), [
+        /(?:data\s+da\s+assinatura|assinado\s+em|celebrado\s+em)[^0-9]{0,100}(\d{2}\/\d{2}\/\d{4})/i,
+      ]);
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const guaranteeText = firstMatch(text.slice(0, 30000), [
