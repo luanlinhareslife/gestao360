@@ -326,7 +326,7 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
     const match = label.exec(text);
     if (!match || match.index === undefined) continue;
     const sample = text.slice(match.index, match.index + max);
-    const value = sample.match(/(?:^|[:\\-]\\s*)([^;\\n]{3,220})/);
+    const value = sample.match(/(?:^|[:\-]\s*)([^;\n]{3,220})/);
     if (value?.[1]) return cleanSnippet(value[1], 220);
   }
   return undefined;
@@ -335,20 +335,20 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
 function extractContractParties(text: string) {
   const head = text.slice(0, 18000);
   const agency = firstMatch(head, [
-    /(?:CONTRATANTE|órgão\\s+contratante)\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
-    /(?:Departamento Estadual de Estradas de Rodagem e Transportes|DER\\s*\\/\\s*RO)/i,
+    /(?:CONTRATANTE|órgão\s+contratante)\s*[:\-]?\s*([^\n]{3,180})/i,
+    /(?:Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i,
   ]);
   const contractor = firstMatch(head, [
-    /(?:CONTRATADA|CONTRATADO|empresa\\s+contratada)\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
-    /(?:MM\\s+SERVIÇOS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
+    /(?:CONTRATADA|CONTRATADO|empresa\s+contratada)\s*[:\-]?\s*([^\n]{3,180})/i,
+    /(?:MM\s+SERVIÇOS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
   ]);
-  const cnpjMatches = [...head.matchAll(/(?:CNPJ\\s*(?:n[º°.]?\\s*)?[:\\-]?\\s*)?(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
+  const cnpjMatches = [...head.matchAll(/(?:CNPJ\s*(?:n[º°.]?\s*)?[:\-]?\s*)?(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const contractorCnpj = cnpjMatches.find(match => {
     const before = head.slice(Math.max(0, (match.index ?? 0) - 180), match.index);
     return /contratada|contratado|empresa/i.test(before);
   })?.[1];
   return {
-    contractingAgency: agency?.replace(/^.*?(Departamento Estadual de Estradas de Rodagem e Transportes|DER\\s*\\/\\s*RO)/i, '$1').trim(),
+    contractingAgency: agency?.replace(/^.*?(Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i, '$1').trim(),
     contractor: contractor?.trim(),
     contractorCnpj,
   };
@@ -357,21 +357,21 @@ function extractContractParties(text: string) {
 function extractContractObject(text: string) {
   const head = text.slice(0, 22000);
   const patterns = [
-    /(?:CLÁUSULA\\s+PRIMEIRA|CLÁUSULA\\s+1ª|DO\\s+OBJETO)[\\s\\S]{0,180}?objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,900}?)(?=\\s*(?:CLÁUSULA\\s+(?:SEGUNDA|2ª)|\\b2\\s*\\.|\\b1\\.2\\b))/i,
-    /objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,700}?)(?=\\s*(?:CLÁUSULA|\\b1\\.2\\b|\\b2\\.))/i,
+    /(?:CLÁUSULA\s+PRIMEIRA|CLÁUSULA\s+1ª|DO\s+OBJETO)[\s\S]{0,180}?objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,900}?)(?=\s*(?:CLÁUSULA\s+(?:SEGUNDA|2ª)|\b2\s*\.|\b1\.2\b))/i,
+    /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
   ];
-  return firstMatch(head, patterns)?.replace(/\\s+/g, ' ').trim();
+  return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
 }
 
 function extractDuration(text: string, kind: 'validity' | 'execution') {
   const head = text.slice(0, 30000);
   const patterns = kind === 'execution'
     ? [
-        /(?:prazo\\s+de\\s+execução|execução\\s+dos\\s+serviços)[\\s\\S]{0,180}?(\\d{1,4})\\s*\\(?(?:\w+\\)?\\s*)?dias/i,
-        /executad[oa]s?[\\s\\S]{0,140}?(\\d{1,4})\\s*dias/i,
+        /(?:prazo\s+de\s+execução|execução\s+dos\s+serviços)[\s\S]{0,180}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
+        /executad[oa]s?[\s\S]{0,140}?(\d{1,4})\s*dias/i,
       ]
     : [
-        /(?:prazo\\s+de\\s+vigência|vigência\\s+do\\s+contrato|vigência)[\\s\\S]{0,180}?(\\d{1,4})\\s*\\(?(?:\\w+\\)?\\s*)?dias/i,
+        /(?:prazo\s+de\s+vigência|vigência\s+do\s+contrato|vigência)[\s\S]{0,180}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
       ];
   for (const pattern of patterns) {
     const match = pattern.exec(head);
@@ -386,11 +386,11 @@ function extractDuration(text: string, kind: 'validity' | 'execution') {
 function extractProcessReferences(text: string) {
   const opening = text.slice(0, 14000);
   const administrativeProcess = firstMatch(opening, [
-    /processo\\s+administrativo\\s*(?:n[º°.]?\\s*)?([0-9.\\/-]+)/i,
-    /processo\\s*(?:n[º°.]?\\s*)?([0-9]{4,}(?:\\.[0-9]+)*\\/[0-9]{4}-[0-9]+)/i,
+    /processo\s+administrativo\s*(?:n[º°.]?\s*)?([0-9.\/-]+)/i,
+    /processo\s*(?:n[º°.]?\s*)?([0-9]{4,}(?:\.[0-9]+)*\/[0-9]{4}-[0-9]+)/i,
   ]);
   const seiProcess = firstMatch(text, [
-    /(?:SEI|processo\\s+SEI)[^0-9]{0,50}([0-9]{4}\\.[0-9]{6}\\/[0-9]{4}-[0-9]{2})/i,
+    /(?:SEI|processo\s+SEI)[^0-9]{0,50}([0-9]{4}\.[0-9]{6}\/[0-9]{4}-[0-9]{2})/i,
   ]);
   return { administrativeProcess, seiProcess };
 }
