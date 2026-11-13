@@ -345,7 +345,7 @@ function extractContractParties(text: string) {
     /CONTRATADA\s*[:\-]?\s*([^\n]{3,180})/i,
   ]);
   const contractorIndex = contractor ? head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR')) : -1;
-  const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?\s*(?:n[º°.]?\s*)?[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
+  const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?[^0-9]{0,35}(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const agencyCnpj = cnpjMatches[0]?.[1];
   const contractorCnpj = contractorIndex >= 0
     ? cnpjMatches.find(match => (match.index ?? -1) > contractorIndex)?.[1]
@@ -479,7 +479,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const parties = extractContractParties(text);
   const object = extractContractObject(text);
   const valueText = firstMatch(text.slice(0, 24000), [
-    /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[^R$]{0,100}R$\s*([0-9.]+,[0-9]{2})/i,
+    /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[\s\S]{0,140}?R\$\s*([0-9.]+,[0-9]{2})/i,
     /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R$\s*([0-9.]+,[0-9]{2})/i,
   ]);
   const signatureStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula vigésima quarta');
@@ -494,8 +494,8 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const guaranteeText = firstMatch(text.slice(0, 30000), [
-    /garantia(?:\s+de\s+execução)?[\s\S]{0,500}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-    /garantia(?:\s+contratual)?[\s\S]{0,500}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantias?\s+contratuais?[\s\S]{0,700}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantia(?:\s+contratual)?[\s\S]{0,700}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
     /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,100}garantia/i,
   ]);
   const value = parseMoney(valueText);
