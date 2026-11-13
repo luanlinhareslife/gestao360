@@ -466,27 +466,27 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
     pageTexts.push(pageText);
   }
 
-  const text = normalize(pageTexts.join('\\n'));
+  const text = normalize(pageTexts.join('\n'));
   const number = firstMatch(text.slice(0, 16000), [
-    /Contrato\\s*(?:Administrativo\\s*)?n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
-    /Contrato\\s*n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
+    /Contrato\s*(?:Administrativo\s*)?n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
+    /Contrato\s*n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
   ]);
   const processRefs = extractProcessReferences(text);
   const parties = extractContractParties(text);
   const object = extractContractObject(text);
   const valueText = firstMatch(text.slice(0, 24000), [
-    /valor\\s+(?:global\\s+)?(?:do\\s+presente\\s+contrato|total\\s+do\\s+contrato|do\\s+contrato)[^R$]{0,100}R$\\s*([0-9.]+,[0-9]{2})/i,
-    /valor(?:\\s+total)?(?:\\s+do\\s+contrato)?\\s*(?:é|:)?\\s*R$\\s*([0-9.]+,[0-9]{2})/i,
+    /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[^R$]{0,100}R$\s*([0-9.]+,[0-9]{2})/i,
+    /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R$\s*([0-9.]+,[0-9]{2})/i,
   ]);
   const signedAt = firstMatch(text.slice(0, 26000), [
-    /(?:data\\s+da\\s+assinatura|assinado\\s+em|celebrado\\s+em)[^0-9]{0,60}(\\d{2}\\/\\d{2}\\/\\d{4})/i,
-    /(?:Porto Velho|Ji-Paraná)[^0-9]{0,80}(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:data\s+da\s+assinatura|assinado\s+em|celebrado\s+em)[^0-9]{0,60}(\d{2}\/\d{2}\/\d{4})/i,
+    /(?:Porto Velho|Ji-Paraná)[^0-9]{0,80}(\d{2}\/\d{2}\/\d{4})/i,
   ]);
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const guaranteeText = firstMatch(text.slice(0, 30000), [
-    /garantia(?:\\s+contratual)?[\\s\\S]{0,180}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
-    /\\b(\\d{1,2}(?:[.,]\\d+)?)\\s*%[\\s\\S]{0,100}garantia/i,
+    /garantia(?:\s+contratual)?[\s\S]{0,180}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,100}garantia/i,
   ]);
   const value = parseMoney(valueText);
   const guaranteePercent = guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined;
