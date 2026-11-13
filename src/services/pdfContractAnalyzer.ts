@@ -336,11 +336,11 @@ function extractContractParties(text: string) {
   const head = text.slice(0, 18000);
   const agency = firstMatch(head, [
     /(?:CONTRATANTE|órgão\s+contratante)\s*[:\-]?\s*([^\n]{3,180})/i,
-    /(?:Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i,
+    /(Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i,
   ]);
   const contractor = firstMatch(head, [
     /(?:CONTRATADA|CONTRATADO|empresa\s+contratada)\s*[:\-]?\s*([^\n]{3,180})/i,
-    /(?:MM\s+SERVIÇOS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
+    /(MM\s+SERVIÇOS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
   ]);
   const cnpjMatches = [...head.matchAll(/(?:CNPJ\s*(?:n[º°.]?\s*)?[:\-]?\s*)?(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const contractorCnpj = cnpjMatches.find(match => {
