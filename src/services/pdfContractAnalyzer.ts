@@ -39,6 +39,10 @@ export type ExtractedContract = {
     process?: string;
     value?: number;
     signedAt?: string;
+    orderServiceSignedAt?: string;
+    serviceStartDate?: string;
+    serviceStartRule?: string;
+    serviceStartEvidence?: string;
     executionDays?: number;
     guaranteePercent?: number;
   };
@@ -290,6 +294,55 @@ function splitClauses(text: string) {
   });
 }
 
+
+function parseBrazilianDate(value?: string) {
+  if (!value) return undefined;
+  const match = value.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);
+  if (!match) return undefined;
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return undefined;
+  return `${year}-${month}-${day}`;
+}
+
+function extractOrderServiceDates(text: string) {
+  const lower = text.toLocaleLowerCase('pt-BR');
+  if (!/(ordem\\s+de\\s+servi[cç]o|ordem\\s+de\\s+in[ií]cio)/i.test(lower)) return {};
+  const signedText = firstMatch(text, [
+    /(?:ordem\\s+de\\s+servi[cç]o|ordem\\s+de\\s+in[ií]cio)[^\\n]{0,180}?(?:assinada?|assinatura|emitida?)[^\\n]{0,80}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:assinada?|assinatura|data da emiss[aã]o)[^\\n]{0,100}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+  ]);
+  const explicitStart = firstMatch(text, [
+    /(?:in[ií]cio|iniciar|iniciados?|iniciadas?)(?:\\s+dos\\s+servi[cç]os?)?[^\\n]{0,100}?(?:em|no dia|a partir de|para o dia)\\s*(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:data prevista para o in[ií]cio|data de in[ií]cio dos servi[cç]os?)[^\\n]{0,50}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+  ]);
+  const relativeDays = text.match(/(?:iniciar|in[ií]cio dos servi[cç]os?|iniciados?)[^\\n]{0,130}?(?:em at[eé]|no prazo de|em)\\s*(\\d{1,3})\\s*dias?\\s*(?:corridos?)?\\s*(?:da|ap[oó]s|contados? da)\\s*(?:assinatura|emiss[aã]o|recebimento)\\s*(?:da\\s+)?(?:ordem\\s+de\\s+servi[cç]o|OS)?/i);
+  const signedAt = parseBrazilianDate(signedText);
+  const directStart = parseBrazilianDate(explicitStart);
+  let serviceStartDate = directStart;
+  let serviceStartRule = explicitStart ? 'Data de início expressamente indicada na Ordem de Serviço' : undefined;
+  if (!serviceStartDate && signedAt && relativeDays) {
+    const days = Number(relativeDays[1]);
+    const [year, month, day] = signedAt.split('-').map(Number);
+    const calculated = new Date(year, month - 1, day + days);
+    serviceStartDate = `${calculated.getFullYear()}-${String(calculated.getMonth()+1).padStart(2,'0')}-${String(calculated.getDate()).padStart(2,'0')}`;
+    serviceStartRule = `Prazo de até ${days} dias corridos contado da assinatura/emissão da OS; data calculada automaticamente`;
+  }
+  const evidence = explicitStart
+    ? extractEvidence(text, ['início dos serviços', 'iniciar', 'data prevista para o início'])
+    : relativeDays
+      ? cleanSnippet(relativeDays[0])
+      : signedText
+        ? cleanSnippet(signedText)
+        : undefined;
+  return {
+    orderServiceSignedAt: signedAt,
+    serviceStartDate,
+    serviceStartRule,
+    serviceStartEvidence: evidence,
+  };
+}
+
 export async function extractContractFromPdf(file: File): Promise<ExtractedContract> {
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
     throw new Error('Selecione um arquivo PDF.');
@@ -333,6 +386,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   ]);
 
   const obligations = detectObligations(text);
+  const orderServiceDates = extractOrderServiceDates(text);
 
   return {
     fileName: file.name,
@@ -343,6 +397,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       process,
       value: parseMoney(valueText),
       signedAt,
+      ...orderServiceDates,
       executionDays: executionText ? Number(executionText) : undefined,
       guaranteePercent: guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined,
     },
