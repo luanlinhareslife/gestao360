@@ -51,6 +51,7 @@ export type ExtractedContract = {
     guaranteePercent?: number;
     guaranteeValue?: number;
     validityDays?: number;
+    validityEndDate?: string;
     administrativeProcess?: string;
     seiProcess?: string;
     contractingAgency?: string;
@@ -334,23 +335,29 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
 }
 
 function extractContractParties(text: string) {
-  const head = text.slice(0, 18000);
+  const head = text.slice(0, 22000);
   const agency = firstMatch(head, [
-    /O\s+(DEPARTAMENTO\s+ESTADUAL\s+DE\s+ESTRADAS\s+DE\s+RODAGEM\s+E\s+TRANSPORTES?\s*[—–-]?\s*DER\s*\/\s*RO)/i,
-    /(DEPARTAMENTO\s+ESTADUAL\s+DE\s+ESTRADAS\s+DE\s+RODAGEM\s+E\s+TRANSPORTES?\s*[—–-]?\s*DER\s*\/\s*RO)/i,
+    /(?:a|o)\\s+(PREFEITURA\\s+MUNICIPAL\\s+DE\\s+[A-ZÀ-Ú][A-ZÀ-Ú\\s.-]{2,100}?)(?=,?\\s*pessoa\\s+jur[ií]dica)/i,
+    /(MUNIC[IÍ]PIO\\s+DE\\s+[A-ZÀ-Ú][A-ZÀ-Ú\\s.-]{2,100}?)(?=,?\\s*pessoa\\s+jur[ií]dica)/i,
+    /(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?[^,\\n]{0,80})/i,
   ]);
   const contractor = firstMatch(head, [
-    /firma\s+(MM\s+SERVI[CÇ]OS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
-    /(MM\s+SERVI[CÇ]OS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
-    /CONTRATADA\s*[:\-]?\s*([^\n]{3,180})/i,
+    /empresa\\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\\b(?:LTDA|S\\/?A|EIRELI)\\.?)\\s*,?\\s*inscrita\\s+no\\s+CNPJ/i,
+    /empresa\\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\\b(?:LTDA|S\\/?A|EIRELI)\\.?)/i,
+    /CONTRATADA\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
   ]);
-  const contractorIndex = contractor ? head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR')) : -1;
-  const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?[^0-9]{0,35}(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
+  const cnpjMatches = [...head.matchAll(/CNPJ(?:\\/MF)?[^0-9]{0,35}(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
   const agencyCnpj = cnpjMatches[0]?.[1];
-  const contractorCnpj = cnpjMatches[cnpjMatches.length - 1]?.[1];
+  let contractorCnpj: string | undefined;
+  if (contractor) {
+    const contractorIndex = head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR'));
+    const nearby = cnpjMatches.find(match => (match.index ?? -1) > contractorIndex && (match.index ?? 0) - contractorIndex < 900);
+    contractorCnpj = nearby?.[1];
+  }
+  contractorCnpj ??= cnpjMatches[cnpjMatches.length - 1]?.[1];
   return {
-    contractingAgency: agency?.trim(),
-    contractor: contractor?.trim(),
+    contractingAgency: agency?.replace(/\\s+/g, ' ').trim(),
+    contractor: contractor?.replace(/\\s+/g, ' ').trim(),
     contractorCnpj,
     agencyCnpj,
   };
@@ -363,6 +370,15 @@ function extractContractObject(text: string) {
     /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
   ];
   return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
+}
+
+function parsePortugueseDate(text: string) {
+  const months: Record<string, string> = { janeiro:'01', fevereiro:'02', março:'03', marco:'03', abril:'04', maio:'05', junho:'06', julho:'07', agosto:'08', setembro:'09', outubro:'10', novembro:'11', dezembro:'12' };
+  const match = text.match(/(\\d{1,2})\\s+de\\s+([a-zçã]+)\\s+(?:de\\s+)?(\\d{4})/i);
+  if (!match) return undefined;
+  const month = months[match[2].toLocaleLowerCase('pt-BR')];
+  if (!month) return undefined;
+  return parseBrazilianDate(`${match[1].padStart(2, '0')}/${month}/${match[3]}`);
 }
 
 function extractDuration(text: string, kind: 'validity' | 'execution') {
@@ -491,6 +507,11 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       ]);
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
+  const validityEndText = firstMatch(text, [
+    /(?:t[eê]rmino|encerramento)\\s+(?:da\\s+vig[eê]ncia\\s+)?(?:em|no\\s+dia)\\s+(\\d{1,2}\\s+de\\s+[a-zçã]+\\s+de\\s+\\d{4})/i,
+    /vig[eê]ncia[\\s\\S]{0,220}?at[eé]\\s+(\\d{1,2}\\s+de\\s+[a-zçã]+\\s+de\\s+\\d{4})/i,
+  ]);
+  const validityEndDate = parsePortugueseDate(validityEndText ?? '');
   const guaranteeStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula décima nona');
   const guaranteeSection = guaranteeStart >= 0 ? text.slice(guaranteeStart, guaranteeStart + 12000) : text;
   const guaranteeText = firstMatch(guaranteeSection, [
@@ -512,7 +533,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   registerEvidence('value', valueText ? extractEvidence(text.slice(0, 24000), ['valor do presente contrato', 'valor total do contrato', 'valor do contrato']) : undefined);
   registerEvidence('signedAt', signedAt ? extractEvidence(text.slice(0, 26000), ['data da assinatura', 'assinado em', 'celebrado em']) : undefined);
   registerEvidence('execution', execution.evidence);
-  registerEvidence('validity', validity.evidence);
+  registerEvidence('validity', validity.evidence ?? (validityEndText ? extractEvidence(text, ['CLÁUSULA DÉCIMA NONA', 'prazo de vigência']) : undefined));
   registerEvidence('guarantee', guaranteeText ? extractEvidence(text.slice(0, 30000), ['garantia contratual', 'garantia']) : undefined);
   registerEvidence('contractor', parties.contractor);
   registerEvidence('contractingAgency', parties.contractingAgency);
@@ -536,7 +557,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       object,
       value,
       signedAt,
-      validityDays: validity.days,
+      validityDays: validity.days,\n      validityEndDate,
       validityRule: validity.evidence,
       executionRule: execution.evidence,
       guaranteeValue: value !== undefined && guaranteePercent !== undefined
