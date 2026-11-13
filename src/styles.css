@@ -277,3 +277,63 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .measurements-subnav>span{font-size:9px;font-weight:800;letter-spacing:1px;color:#71869a}
 @media(max-width:1100px){.measurement-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.measurement-workspace{grid-template-columns:1fr}}
 @media(max-width:700px){.measurement-folder-grid,.measurement-contract-facts{grid-template-columns:1fr}.measurements-subnav{align-items:flex-start;flex-direction:column}}
+
+
+/* Pastas contratuais e cronograma físico-financeiro */
+.contract-workspace-page{padding:25px 25px 40px}
+.contract-source-note{align-self:center;padding:9px 12px;border:1px solid #dce7f0;border-radius:8px;background:#f5f9fc;color:#637b90;font-size:9px;max-width:270px;line-height:1.45}
+.contract-workspace-layout{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,2fr);gap:15px;align-items:start}
+.contract-picker,.contract-workspace-main{min-width:0;background:#fff;border:1px solid #dfe7ee;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(14,47,76,.03)}
+.contract-picker-item{width:100%;display:flex;align-items:center;gap:9px;padding:11px;margin:0 0 8px;border:1px solid #e1e8ef;border-radius:9px;background:#fff;color:#173957;text-align:left;cursor:pointer}
+.contract-picker-item.active{border-color:#1470d2;background:#f2f8ff;box-shadow:0 0 0 2px rgba(20,112,210,.08)}
+.contract-picker-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border-radius:8px;background:#edf5fc;color:#0b4d7d;font-size:18px}
+.contract-picker-item>span:nth-child(2){display:grid;gap:4px;min-width:0;flex:1}
+.contract-picker-item strong{font-size:10px}.contract-picker-item small{font-size:8px;color:#71869a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contract-picker-item>b{font-size:20px;font-weight:400}
+.contract-sync-warning{margin-top:14px;padding:12px;border:1px solid #f0dfb9;border-radius:9px;background:#fff9ed;color:#795d25}
+.contract-sync-warning strong{font-size:10px}.contract-sync-warning p{font-size:9px;line-height:1.5;margin:5px 0 0}
+.contract-workspace-title{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:13px;border-bottom:1px solid #edf1f5}
+.contract-workspace-title h2{font-size:19px;color:#173957;margin:5px 0}
+.contract-workspace-title p{font-size:9px;line-height:1.5;color:#71869a;margin:0;max-width:760px}
+.contract-workspace-title>strong{font-size:16px;color:#173957;white-space:nowrap}
+.contract-workspace-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:13px 0}
+.contract-workspace-facts>div{display:grid;gap:5px;min-width:0}
+.contract-workspace-facts small,.contract-overview-grid small,.schedule-kpis small{font-size:8px;color:#7b8da0}
+.contract-workspace-facts strong{font-size:9px;color:#294b68;overflow-wrap:anywhere}
+.contract-workspace-tabs{display:flex;gap:5px;overflow-x:auto;padding:8px 0 12px;border-bottom:1px solid #e8eef3}
+.contract-workspace-tabs button{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:9px 11px;border:1px solid transparent;border-radius:8px;background:transparent;color:#5d7389;font-size:9px;font-weight:700;cursor:pointer}
+.contract-workspace-tabs button.active{background:#eaf4ff;border-color:#cfe3f7;color:#075b9e}
+.contract-workspace-tabs button span{font-size:15px}
+.contract-tab-panel{padding:17px 2px 3px}
+.contract-tab-panel h3{font-size:15px;color:#173957;margin:0 0 7px}
+.contract-tab-panel>p{font-size:10px;line-height:1.6;color:#71869a;max-width:850px}
+.contract-overview-grid,.schedule-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:13px 0}
+.contract-overview-grid>div,.schedule-kpis>div{display:grid;gap:6px;padding:13px;border:1px solid #e4ebf1;border-radius:9px;background:#f8fbfd}
+.contract-overview-grid strong,.schedule-kpis strong{font-size:16px;color:#173957}
+.contract-tab-help{padding:12px;border-radius:8px;background:#f2f7fc}
+.schedule-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.schedule-heading h3{margin:0 0 5px}.schedule-heading p{margin:0;font-size:9px;line-height:1.5;color:#71869a}
+.schedule-total{padding:7px 10px;border-radius:20px;background:#eaf4ff;color:#075b9e;font-size:9px;font-weight:800;white-space:nowrap}
+.schedule-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.schedule-stage-form{display:grid;grid-template-columns:1.4fr 1fr 1fr .8fr 1fr auto;gap:8px;align-items:end;padding:13px;background:#f6f9fc;border:1px solid #e5edf3;border-radius:10px}
+.schedule-stage-form label,.schedule-actual-field{display:grid;gap:5px;font-size:8px;font-weight:700;color:#536c82}
+.schedule-stage-form input,.schedule-actual-field input{width:100%;min-width:0;height:34px;padding:7px 8px;border:1px solid #cfdae4;border-radius:6px;background:#fff;color:#173957;font-size:9px}
+.schedule-stage-form .primary-button{height:34px;padding:8px 11px;font-size:9px;white-space:nowrap}
+.schedule-form-error{grid-column:1/-1;margin:0;color:#b42318;font-size:9px}
+.schedule-stage-list{display:grid;gap:9px;margin-top:13px}
+.schedule-stage-card{padding:13px;border:1px solid #e1e8ef;border-radius:9px;background:#fff}
+.schedule-stage-top{display:flex;justify-content:space-between;gap:10px}
+.schedule-stage-top>div{display:grid;gap:4px}.schedule-stage-top strong{font-size:11px;color:#173957}.schedule-stage-top small{font-size:8px;color:#71869a}
+.schedule-stage-top button{width:26px;height:26px;border:0;border-radius:6px;background:#fff0f0;color:#a32626;font-size:18px;cursor:pointer}
+.schedule-stage-metrics{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0;font-size:8px;color:#71869a}
+.schedule-stage-metrics b{color:#294b68}
+.schedule-progress-track{height:8px;overflow:hidden;border-radius:10px;background:#eaf0f5}
+.schedule-progress-track>div{height:100%;border-radius:10px;background:#1b8b62;transition:width .2s}
+.schedule-actual-field{grid-template-columns:auto 90px;align-items:center;justify-content:end;margin-top:9px}
+.schedule-empty{display:grid;justify-items:center;gap:6px;padding:28px 15px;text-align:center;color:#71869a}
+.schedule-empty>span{font-size:28px;color:#0b5d9a}.schedule-empty strong{font-size:12px;color:#173957}.schedule-empty p{margin:0;font-size:9px}
+.schedule-validation{display:grid;gap:5px;margin-top:13px;padding:12px;border:1px solid #d8e6f1;border-radius:9px;background:#f3f8fc;color:#34546d;font-size:9px}
+.schedule-validation small{font-size:8px;line-height:1.5;color:#71869a}
+.schedule-diary-link{display:inline-flex;margin-top:10px;text-decoration:none}
+@media(max-width:1200px){.contract-workspace-layout{grid-template-columns:1fr}.schedule-stage-form{grid-template-columns:repeat(3,minmax(0,1fr))}.contract-workspace-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.contract-source-note{max-width:none}.contract-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-kpis{grid-template-columns:1fr}.schedule-stage-form{grid-template-columns:1fr 1fr}.contract-workspace-title{flex-direction:column}}
