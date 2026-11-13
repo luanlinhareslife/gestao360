@@ -95,7 +95,7 @@ export default function App() {
         {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
         {active === 'Licitações' && <LicitacoesModule />}
-        {active === 'Medições' && <Diario360Module />}
+        {active === 'Medições' && <MedicoesModule />}
         {!['Dashboard', 'Empresas', 'Contratos', 'Obrigações e Alertas', 'Alertas/Pendências', 'ART / Responsabilidade Técnica', 'Licitações', 'Medições'].includes(active) && (
           <section className="module-placeholder"><div className="placeholder-icon">{modules.find(([name]) => name === active)?.[1]}</div><h2>{active}</h2><p>Este módulo será desenvolvido dentro da plataforma definitiva do Gestão 360.</p></section>
         )}
@@ -680,23 +680,120 @@ function Metric({ icon, title, value, tone, onClick }: { icon: string; title: st
   return <button className={`metric ${tone}`} onClick={onClick}><span className="metric-icon">{icon}</span><div><small>{title}</small><strong>{value}</strong></div><b>›</b></button>;
 }
 
-function MedicoesModule({ onOpenDiaries }: { onOpenDiaries: () => void }) {
+function MedicoesModule() {
+  const [showDiary, setShowDiary] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(contracts[0]?.id ?? '');
+
+  if (showDiary) {
+    return (
+      <section className="measurements-page">
+        <div className="measurements-subnav">
+          <button className="outline-button" onClick={() => setShowDiary(false)}>← Voltar ao painel de medições</button>
+          <span>MEDIÇÕES / DIÁRIO DE OBRAS</span>
+        </div>
+        <Diario360Module />
+      </section>
+    );
+  }
+
+  const currentContract = contracts.find(contract => contract.id === selectedContract);
+
   return (
     <section className="page measurements-page">
       <div className="page-heading">
         <div>
           <span className="eyebrow">GESTÃO 360 • EXECUÇÃO E FATURAMENTO</span>
           <h1>Medições</h1>
-          <p>Centralize os registros de execução que dão suporte às medições dos contratos.</p>
+          <p>Acompanhe os diários de obra, organize as planilhas e monitore os valores a medir e já medidos.</p>
         </div>
-        <button className="primary-button" onClick={onOpenDiaries}>Acessar diários de obra →</button>
+        <button className="primary-button" onClick={() => setShowDiary(true)}>Abrir Diário 360 →</button>
       </div>
-      <div className="measurement-flow">
-        <article><span>01</span><div><strong>Diário de obra</strong><p>Registre serviços executados, ocorrências e fotografias na aplicação Diário 360 já utilizada pela equipe.</p><button className="outline-button" onClick={onOpenDiaries}>Abrir Diário 360</button></div></article>
-        <article><span>02</span><div><strong>Conferência da medição</strong><p>Organize os registros e evidências que serão conferidos antes do envio da medição ao contratante.</p><small>Central de conferência — próxima etapa de desenvolvimento</small></div></article>
-        <article><span>03</span><div><strong>Relatório e protocolo</strong><p>Prepare o acompanhamento do envio, aprovação e faturamento de cada medição.</p><small>Controle de protocolo — próxima etapa de desenvolvimento</small></div></article>
+
+      <div className="measurement-summary">
+        <article className="measurement-summary-card blue">
+          <span>CONTRATOS COM MEDIÇÃO</span>
+          <strong>{contracts.length}</strong>
+          <small>Contratos cadastrados no Gestão 360</small>
+        </article>
+        <article className="measurement-summary-card green">
+          <span>DIÁRIO DE OBRAS</span>
+          <strong>Diário 360</strong>
+          <small>Aplicação oficial conectada à base atual</small>
+        </article>
+        <article className="measurement-summary-card amber">
+          <span>PLANILHAS DE MEDIÇÃO</span>
+          <strong>A organizar</strong>
+          <small>Espaço para planilhas de cada contrato</small>
+        </article>
+        <article className="measurement-summary-card purple">
+          <span>VALORES MEDIDOS</span>
+          <strong>A apurar</strong>
+          <small>Consolidação após importar as planilhas</small>
+        </article>
       </div>
-      <div className="measurement-note"><strong>Integração preservada</strong><p>O Diário 360 continua sendo a aplicação oficial e mantém sua base online atual. Esta tela funciona como ponto de entrada da área de medições; não duplica nem altera os registros existentes.</p></div>
+
+      <div className="measurement-workspace">
+        <div className="measurement-contracts">
+          <div className="measurement-section-heading">
+            <div><span className="eyebrow">PASTAS DE MEDIÇÃO</span><h2>Contratos</h2></div>
+            <span>{contracts.length} contrato(s)</span>
+          </div>
+          {contracts.map(contract => (
+            <button
+              type="button"
+              key={contract.id}
+              className={selectedContract === contract.id ? 'measurement-contract-card active' : 'measurement-contract-card'}
+              onClick={() => setSelectedContract(contract.id)}
+            >
+              <span className="measurement-contract-icon">▤</span>
+              <span className="measurement-contract-copy">
+                <strong>Contrato nº {contract.number}</strong>
+                <small>{contract.agency}</small>
+                <small>{contract.contractor}</small>
+              </span>
+              <b>›</b>
+            </button>
+          ))}
+          {!contracts.length && <p className="measurement-empty">Cadastre um contrato para iniciar sua pasta de medição.</p>}
+        </div>
+
+        <div className="measurement-detail">
+          {currentContract ? (
+            <>
+              <div className="measurement-section-heading">
+                <div><span className="eyebrow">PASTA DO CONTRATO</span><h2>Contrato nº {currentContract.number}</h2></div>
+                <span className="measurement-status">{currentContract.status}</span>
+              </div>
+              <div className="measurement-contract-facts">
+                <div><small>Contratante</small><strong>{currentContract.agency}</strong></div>
+                <div><small>Contratada</small><strong>{currentContract.contractor}</strong></div>
+                <div><small>Valor contratual</small><strong>{formatCurrency(currentContract.value)}</strong></div>
+              </div>
+              <div className="measurement-folder-grid">
+                <button type="button" onClick={() => setShowDiary(true)}>
+                  <span>▣</span><strong>Diários de obra</strong><small>Abrir registros e fotografias no Diário 360</small><b>Acessar diário →</b>
+                </button>
+                <div className="measurement-folder-placeholder">
+                  <span>▤</span><strong>Planilhas de medição</strong><small>Área destinada aos arquivos e demonstrativos deste contrato</small><em>Integração de arquivos na próxima etapa</em>
+                </div>
+                <div className="measurement-folder-placeholder">
+                  <span>R$</span><strong>Valores a medir e medidos</strong><small>Resumo financeiro das medições do contrato</small><em>Apuração após integração da planilha</em>
+                </div>
+                <div className="measurement-folder-placeholder">
+                  <span>✓</span><strong>Conferência e protocolo</strong><small>Acompanhamento de envio, aprovação e faturamento</small><em>Fluxo a desenvolver</em>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="measurement-empty-state"><span>▤</span><h2>Nenhum contrato disponível</h2><p>Cadastre um contrato para criar sua pasta de medições.</p></div>
+          )}
+        </div>
+      </div>
+
+      <div className="measurement-preservation-note">
+        <strong>Diário 360 preservado</strong>
+        <p>O botão de acesso abre a aplicação oficial já utilizada pela equipe. Os registros, fotografias e banco de dados permanecem na origem; esta tela não cria cópias nem altera os diários existentes.</p>
+      </div>
     </section>
   );
 }
