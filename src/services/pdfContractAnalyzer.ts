@@ -512,13 +512,21 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
     /vig[eê]ncia[\\s\\S]{0,220}?at[eé]\\s+(\\d{1,2}\\s+de\\s+[a-zçã]+\\s+de\\s+\\d{4})/i,
   ]);
   const validityEndDate = parsePortugueseDate(validityEndText ?? '');
-  const guaranteeStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula décima nona');
-  const guaranteeSection = guaranteeStart >= 0 ? text.slice(guaranteeStart, guaranteeStart + 12000) : text;
-  const guaranteeText = firstMatch(guaranteeSection, [
-    /garantias?\s+contratuais?[\s\S]{0,900}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-    /garantia(?:\s+contratual)?[\s\S]{0,900}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-    /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,120}garantia/i,
-  ]);
+  const guaranteeHeading = [...text.matchAll(/CLÁUSULA\\s+[^\\n]{0,100}GARANTIA[^\\n]*/gi)][0];
+  const guaranteeStart = guaranteeHeading?.index ?? -1;
+  const nextClauseAfterGuarantee = guaranteeStart >= 0
+    ? text.slice(guaranteeStart + 1).search(/CLÁUSULA\\s+/i)
+    : -1;
+  const guaranteeSection = guaranteeStart >= 0
+    ? text.slice(guaranteeStart, nextClauseAfterGuarantee >= 0 ? guaranteeStart + 1 + nextClauseAfterGuarantee : guaranteeStart + 9000)
+    : '';
+  const guaranteePatterns = [
+    /garantias?\\s+contratuais?[\\s\\S]{0,500}?será\\s+de\\s+(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
+    /garantia(?:\\s+contratual)?[\\s\\S]{0,500}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
+    /\\b(\\d{1,2}(?:[.,]\\d+)?)\\s*%[\\s\\S]{0,80}garantia/i,
+  ];
+  const guaranteeText = firstMatch(guaranteeSection, guaranteePatterns)
+    ?? firstMatch(text, [/garantia\\s+contratual[^.\\n]{0,180}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i]);
   const value = parseMoney(valueText);
   const guaranteePercent = guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined;
   const fieldEvidence: Record<string, string> = {};
