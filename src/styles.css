@@ -339,6 +339,7 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .contract-diary-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
 .contract-diary-heading h3{margin:0 0 5px}
 .contract-diary-heading p{margin:0;color:#71869a;font-size:11px;line-height:1.5}
+.contract-diary-company-note{margin-top:5px!important;color:#52718d!important;font-size:10px!important}
 .contract-diary-heading>span{flex:none;padding:7px 10px;border:1px solid #cfe3f7;border-radius:20px;background:#eef6ff;color:#075b9e;font-size:9px;font-weight:800;letter-spacing:.06em}
 .contract-diary-frame{display:block;width:100%;height:calc(100vh - 350px);min-height:760px;border:1px solid #dce5ed;border-radius:12px;background:#f4f7fb}
 @media(max-width:760px){.contract-diary-heading{flex-direction:column}.contract-diary-frame{height:78vh;min-height:680px}}
