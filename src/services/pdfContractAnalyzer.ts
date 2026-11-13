@@ -337,16 +337,16 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
 function extractContractParties(text: string) {
   const head = text.slice(0, 22000);
   const agency = firstMatch(head, [
-    /(?:a|o)\\s+(PREFEITURA\\s+MUNICIPAL\\s+DE\\s+[A-ZÀ-Ú][A-ZÀ-Ú\\s.-]{2,100}?)(?=,?\\s*pessoa\\s+jur[ií]dica)/i,
-    /(MUNIC[IÍ]PIO\\s+DE\\s+[A-ZÀ-Ú][A-ZÀ-Ú\\s.-]{2,100}?)(?=,?\\s*pessoa\\s+jur[ií]dica)/i,
-    /(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?[^,\\n]{0,80})/i,
+    /(?:a|o)\s+(PREFEITURA\s+MUNICIPAL\s+DE\s+[A-ZÀ-Ú][A-ZÀ-Ú\s.-]{2,100}?)(?=,?\s*pessoa\s+jur[ií]dica)/i,
+    /(MUNIC[IÍ]PIO\s+DE\s+[A-ZÀ-Ú][A-ZÀ-Ú\s.-]{2,100}?)(?=,?\s*pessoa\s+jur[ií]dica)/i,
+    /(DEPARTAMENTO\s+ESTADUAL\s+DE\s+ESTRADAS\s+DE\s+RODAGEM\s+E\s+TRANSPORTES?[^,\n]{0,80})/i,
   ]);
   const contractor = firstMatch(head, [
-    /empresa\\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\\b(?:LTDA|S\\/?A|EIRELI)\\.?)\\s*,?\\s*inscrita\\s+no\\s+CNPJ/i,
-    /empresa\\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\\b(?:LTDA|S\\/?A|EIRELI)\\.?)/i,
-    /CONTRATADA\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
+    /empresa\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\b(?:LTDA|S\/?A|EIRELI)\.?)\s*,?\s*inscrita\s+no\s+CNPJ/i,
+    /empresa\s+([A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}\b(?:LTDA|S\/?A|EIRELI)\.?)/i,
+    /CONTRATADA\s*[:\-]?\s*([^\n]{3,180})/i,
   ]);
-  const cnpjMatches = [...head.matchAll(/CNPJ(?:\\/MF)?[^0-9]{0,35}(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
+  const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?[^0-9]{0,35}(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const agencyCnpj = cnpjMatches[0]?.[1];
   let contractorCnpj: string | undefined;
   if (contractor) {
@@ -356,8 +356,8 @@ function extractContractParties(text: string) {
   }
   contractorCnpj ??= cnpjMatches[cnpjMatches.length - 1]?.[1];
   return {
-    contractingAgency: agency?.replace(/\\s+/g, ' ').trim(),
-    contractor: contractor?.replace(/\\s+/g, ' ').trim(),
+    contractingAgency: agency?.replace(/\s+/g, ' ').trim(),
+    contractor: contractor?.replace(/\s+/g, ' ').trim(),
     contractorCnpj,
     agencyCnpj,
   };
@@ -565,7 +565,8 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       object,
       value,
       signedAt,
-      validityDays: validity.days,\n      validityEndDate,
+      validityDays: validity.days,
+      validityEndDate,
       validityRule: validity.evidence,
       executionRule: execution.evidence,
       guaranteeValue: value !== undefined && guaranteePercent !== undefined
