@@ -4,6 +4,7 @@ import { extractContractFromPdf, type ContractObligation, type ExtractedContract
 import LicitacoesModule from './modules/LicitacoesModule';
 import Diario360Module from './modules/Diario360Module';
 import EmpresasModule from './modules/EmpresasModule';
+import ContractWorkspaceModule from './modules/ContractWorkspaceModule';
 
 const modules = [
   ['Dashboard', '⌂'],
@@ -90,7 +91,7 @@ export default function App() {
 
         {active === 'Dashboard' && <Dashboard onNavigate={setActive} />}
         {active === 'Empresas' && <EmpresasModule />}
-        {active === 'Contratos' && <ContractModule />}
+        {active === 'Contratos' && <ContractWorkspaceModule />}
         {active === 'Obrigações e Alertas' && <ObligationModule />}
         {active === 'Alertas/Pendências' && <AlertasPendenciasModule />}
         {active === 'ART / Responsabilidade Técnica' && <ArtModule />}
