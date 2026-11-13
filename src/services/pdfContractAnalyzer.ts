@@ -347,6 +347,7 @@ function extractContractParties(text: string) {
     /CONTRATADA\s*[:\-]?\s*([^\n]{3,180})/i,
   ]);
   const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?[^0-9]{0,35}(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
+  const contractorCnpjMatch = head.match(/empresa\s+[A-ZÀ-Ú][A-ZÀ-Ú0-9 .&-]{2,100}?\s*,?\s*inscrita\s+no\s+CNPJ(?:\s+sob\s+o\s+n[º°.]*)?\s*([0-9]{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);
   const agencyCnpj = cnpjMatches[0]?.[1];
   let contractorCnpj: string | undefined;
   if (contractor) {
@@ -354,7 +355,7 @@ function extractContractParties(text: string) {
     const nearby = cnpjMatches.find(match => (match.index ?? -1) > contractorIndex && (match.index ?? 0) - contractorIndex < 900);
     contractorCnpj = nearby?.[1];
   }
-  contractorCnpj ??= cnpjMatches[cnpjMatches.length - 1]?.[1];
+  contractorCnpj = contractorCnpjMatch?.[1] ?? contractorCnpj;
   return {
     contractingAgency: agency?.replace(/\s+/g, ' ').trim(),
     contractor: contractor?.replace(/\s+/g, ' ').trim(),
@@ -366,7 +367,7 @@ function extractContractParties(text: string) {
 function extractContractObject(text: string) {
   const head = text.slice(0, 22000);
   const patterns = [
-    /CLÁUSULA\s+PRIMEIRA[\s\S]{0,700}?PARÁGRAFO\s+PRIMEIRO\s*[-–—:]\s*([\s\S]{30,900}?)(?=\s*PARÁGRAFO\s+SEGUNDO)/i,
+    /CLÁUSULA\s+PRIMEIRA[\s\S]{0,700}?PARÁGRAFO\s+PRIMEIRO\s*[.:\-–—]?\s*([\s\S]{30,1200}?)(?=\s*PARÁGRAFO\s+SEGUNDO)/i,
     /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
   ];
   return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
@@ -486,13 +487,13 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
 
   const text = normalize(pageTexts.join('\n'));
   const number = firstMatch(text.slice(0, 16000), [
-    /Contrato\s*(?:Administrativo\s*)?n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
-    /Contrato\s*n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
+    /Contrato\s*(?:Administrativo\s*)?n[.º°]*\s*([0-9]+\/[0-9]{4})/i,
+    /Contrato\s*n[.º°]*\s*([0-9]+\/[0-9]{4})/i,
   ]);
   const processRefs = extractProcessReferences(text);
   const parties = extractContractParties(text);
   const object = extractContractObject(text);
-  const valueText = firstMatch(text.slice(0, 24000), [
+  const valueText = firstMatch(text, [
     /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[\s\S]{0,140}?R\$\s*([0-9.]+,[0-9]{2})/i,
     /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R$\s*([0-9.]+,[0-9]{2})/i,
   ]);
@@ -500,11 +501,12 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const signatureBlock = signatureStart >= 0 ? text.slice(signatureStart) : text;
   const partySignatures = [...signatureBlock.matchAll(/Documento\s+assinado\s+eletronicamente\s+por\s+([^,\n]{3,100})[^\n]{0,180}?\bem\s+(\d{2}\/\d{2}\/\d{4})/gi)]
     .filter(match => !/procurador\s+do\s+estado/i.test(match[0]));
-  const signedAt = partySignatures.length
-    ? partySignatures[partySignatures.length - 1][2]
-    : firstMatch(text.slice(0, 26000), [
-        /(?:data\s+da\s+assinatura|assinado\s+em|celebrado\s+em)[^0-9]{0,100}(\d{2}\/\d{2}\/\d{4})/i,
-      ]);
+  const signedAt = firstMatch(text.slice(0, 12000), [
+    /(?:data\\s+da\\s+assinatura|assinado\\s+em|celebrado\\s+em|^\\s*De:)\\s*[^0-9]{0,100}(\\d{2}\\/\\d{2}\\/\\d{4})/im,
+  ]) ?? (() => {
+    const match = text.slice(0, 9000).match(/Aos\\s+(\\d{1,2})\\s+dias\\s+do\\s+m[eê]s\\s+de\\s+([a-zçã]+)\\s+do\\s+ano\\s+de\\s+(\\d{4})/i);
+    return match ? parsePortugueseDate(\`\${match[1]} de \${match[2]} de \${match[3]}\`)?.split('-').reverse().join('/') : undefined;
+  })();
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const validityEndText = firstMatch(text, [
