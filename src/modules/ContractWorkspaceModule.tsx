@@ -110,6 +110,8 @@ function diaryUrlForContract(contract: Contract) {
   url.searchParams.set('contract', contract.number);
   url.searchParams.set('process', contract.process);
   url.searchParams.set('contractor', contract.contractor);
+  url.searchParams.set('agency', contract.agency);
+  url.searchParams.set('object', contract.object);
   return url.toString();
 }
 
@@ -516,7 +518,7 @@ export default function ContractWorkspaceModule() {
               <p className="contract-document-storage-note">Nesta etapa, os arquivos ficam armazenados localmente neste computador. A sincronização segura com a versão web será implementada separadamente.</p>
             </div>}
             {tab === 'Medições' && <div className="contract-tab-panel"><h3>Medições deste contrato</h3><p>As planilhas, memórias de cálculo, protocolos, aprovações e pagamentos ficarão vinculados a esta pasta. A consolidação geral será exibida na aba Medições da plataforma.</p></div>}
-            {tab === 'Diário 360' && <div className="contract-tab-panel"><h3>Diário de Obras</h3><p>O Diário 360 existente será preservado. A vinculação automática dos diários a este contrato depende da integração segura com a base web atual.</p><a className="primary-button schedule-diary-link" href={diaryUrlForContract(selected)} target="_blank" rel="noreferrer">Abrir diário deste contrato ↗</a></div>}
+            {tab === 'Diário 360' && <div className="contract-tab-panel contract-diary-panel"><div className="contract-diary-heading"><div><h3>Diário de Obras · Contrato {selected.number}</h3><p>Registre, edite e imprima os diários sem sair desta pasta contratual. Os registros ficam na base oficial do Diário 360.</p></div><span>VINCULADO A ESTE CONTRATO</span></div><iframe key={selected.id} className="contract-diary-frame" src={diaryUrlForContract(selected)} title={`Diário de Obras do contrato ${selected.number}`} loading="eager" allow="camera; geolocation" referrerPolicy="strict-origin-when-cross-origin" /></div>}
           </> : <div className="schedule-empty"><strong>Nenhum contrato disponível nesta versão</strong><p>Os cadastros da versão web precisam ser integrados antes de aparecerem aqui.</p></div>}
         </div>
       </div>
