@@ -337,3 +337,20 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .schedule-diary-link{display:inline-flex;margin-top:10px;text-decoration:none}
 @media(max-width:1200px){.contract-workspace-layout{grid-template-columns:1fr}.schedule-stage-form{grid-template-columns:repeat(3,minmax(0,1fr))}.contract-workspace-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.contract-source-note{max-width:none}.contract-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-kpis{grid-template-columns:1fr}.schedule-stage-form{grid-template-columns:1fr 1fr}.contract-workspace-title{flex-direction:column}}
+
+
+.schedule-upload-panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 15px;align-items:center;margin:14px 0;padding:14px;border:1px solid #cfe2f2;border-radius:10px;background:#f2f8fd}
+.schedule-upload-panel>div:first-child strong{font-size:11px;color:#173957}
+.schedule-upload-panel>div:first-child p{margin:4px 0 0;font-size:9px;line-height:1.5;color:#71869a}
+.schedule-upload-button{position:relative;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden}
+.schedule-upload-button input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.schedule-uploaded-file{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border:1px solid #dce7ef;border-radius:8px}
+.schedule-uploaded-file>span{width:32px;height:32px;display:grid;place-items:center;border-radius:7px;background:#eaf4ff;color:#075b9e}
+.schedule-uploaded-file>div{display:grid;gap:3px;min-width:0;flex:1}
+.schedule-uploaded-file strong{font-size:9px;color:#173957;overflow-wrap:anywhere}
+.schedule-uploaded-file small{font-size:8px;color:#71869a}
+.schedule-uploaded-file button{border:1px solid #cbd9e5;border-radius:6px;background:#fff;padding:7px 10px;color:#14517f;font-size:8px;font-weight:700;cursor:pointer}
+.schedule-manual-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:15px 0 8px}
+.schedule-manual-heading strong{font-size:10px;color:#294b68}
+.schedule-manual-heading span{font-size:8px;color:#7b8da0}
+@media(max-width:760px){.schedule-upload-panel{grid-template-columns:1fr}.schedule-upload-button{width:100%}.schedule-uploaded-file{flex-wrap:wrap}}
