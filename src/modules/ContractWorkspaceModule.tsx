@@ -105,6 +105,14 @@ const STORAGE_KEY = 'gestao360.workSchedules.v1';
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
+function diaryUrlForContract(contract: Contract) {
+  const url = new URL('https://diario-360-9ux61w.v2.appdeploy.ai/');
+  url.searchParams.set('contract', contract.number);
+  url.searchParams.set('process', contract.process);
+  url.searchParams.set('contractor', contract.contractor);
+  return url.toString();
+}
+
 const CONTRACTS_KEY = 'gestao360.contracts.v1';
 type ContractDraft = { number: string; process: string; agency: string; contractor: string; cnpj: string; object: string; value: string; signedAt: string; executionDays: string; validity: string; guaranteePercent: string };
 const emptyContractDraft: ContractDraft = { number: '', process: '', agency: '', contractor: '', cnpj: '', object: '', value: '', signedAt: '', executionDays: '', validity: '', guaranteePercent: '' };
@@ -508,7 +516,7 @@ export default function ContractWorkspaceModule() {
               <p className="contract-document-storage-note">Nesta etapa, os arquivos ficam armazenados localmente neste computador. A sincronização segura com a versão web será implementada separadamente.</p>
             </div>}
             {tab === 'Medições' && <div className="contract-tab-panel"><h3>Medições deste contrato</h3><p>As planilhas, memórias de cálculo, protocolos, aprovações e pagamentos ficarão vinculados a esta pasta. A consolidação geral será exibida na aba Medições da plataforma.</p></div>}
-            {tab === 'Diário 360' && <div className="contract-tab-panel"><h3>Diário de Obras</h3><p>O Diário 360 existente será preservado. A vinculação automática dos diários a este contrato depende da integração segura com a base web atual.</p><a className="primary-button schedule-diary-link" href="https://diario-360-9ux61w.v2.appdeploy.ai/" target="_blank" rel="noreferrer">Abrir Diário 360 em nova aba ↗</a></div>}
+            {tab === 'Diário 360' && <div className="contract-tab-panel"><h3>Diário de Obras</h3><p>O Diário 360 existente será preservado. A vinculação automática dos diários a este contrato depende da integração segura com a base web atual.</p><a className="primary-button schedule-diary-link" href={diaryUrlForContract(selected)} target="_blank" rel="noreferrer">Abrir diário deste contrato ↗</a></div>}
           </> : <div className="schedule-empty"><strong>Nenhum contrato disponível nesta versão</strong><p>Os cadastros da versão web precisam ser integrados antes de aparecerem aqui.</p></div>}
         </div>
       </div>
