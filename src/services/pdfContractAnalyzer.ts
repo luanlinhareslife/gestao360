@@ -39,6 +39,10 @@ export type ExtractedContract = {
     process?: string;
     value?: number;
     signedAt?: string;
+    orderServiceNumber?: string;
+    orderServiceIssuedAt?: string;
+    orderServiceMunicipalSignedAt?: string;
+    orderServiceCompanySignedAt?: string;
     orderServiceSignedAt?: string;
     serviceStartDate?: string;
     serviceStartRule?: string;
@@ -306,37 +310,51 @@ function parseBrazilianDate(value?: string) {
 }
 
 function extractOrderServiceDates(text: string) {
-  const lower = text.toLocaleLowerCase('pt-BR');
-  if (!/(ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio)/i.test(lower)) return {};
-  const signedText = firstMatch(text, [
-    /(?:ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio)[^\n]{0,180}?(?:assinada?|assinatura|emitida?)[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/i,
-    /(?:assinada?|assinatura|data da emiss[aã]o)[^\n]{0,100}?(\d{2}\/\d{2}\/\d{4})/i,
+  const flat = text.replace(/\s+/g, ' ').trim();
+  if (!/ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio/i.test(flat)) return {};
+
+  const orderServiceNumber = firstMatch(flat, [
+    /ordem\s+de\s+servi[cç]o\s*n[º°o.]?\s*0*(\d+\s*\/\s*\d{4})/i,
+    /ordem\s+de\s+servi[cç]o\s*(\d+\s+de\s+\d{2}\/\d{2}\/\d{4})/i,
+  ])?.replace(/\s+/g, '');
+
+  const issuedText = firstMatch(flat, [
+    /ordem\s+de\s+servi[cç]o\s*\d+\s+de\s+(\d{2}\/\d{2}\/\d{4})/i,
+    /(?:data\s+de\s+emiss[aã]o|emitida\s+em)\s*(?:desta\s+)?(?:ordem\s+de\s+servi[cç]o)?\s*(?:em)?\s*(\d{2}\/\d{2}\/\d{4})/i,
   ]);
-  const explicitStart = firstMatch(text, [
-    /(?:in[ií]cio|iniciar|iniciados?|iniciadas?)(?:\s+dos\s+servi[cç]os?)?[^\n]{0,100}?(?:em|no dia|a partir de|para o dia)\s*(\d{2}\/\d{2}\/\d{4})/i,
-    /(?:data prevista para o in[ií]cio|data de in[ií]cio dos servi[cç]os?)[^\n]{0,50}?(\d{2}\/\d{2}\/\d{4})/i,
+
+  const municipalSignature = flat.match(/assinado\s+eletronicamente\s+por\s+.{1,180}?(?:prefeito|prefeita|munic[ií]pio|secret[aá]rio|servidor).{0,100}?em\s+(\d{2}\/\d{2}\/\d{4})\s+[àa]s\s+(\d{2}:\d{2})/i)
+    ?? flat.match(/assinado\s+eletronicamente\s+por\s+([^,]{2,100}),?\s*em\s+(\d{2}\/\d{2}\/\d{4})\s+[àa]s\s+(\d{2}:\d{2})/i);
+  const companySignature = flat.match(/assinado\s+eletronicamente\s+por\s+.{1,180}?(?:representante|empresa|contratada|ltda).{0,100}?em\s+(\d{2}\/\d{2}\/\d{4})\s+[àa]s\s+(\d{2}:\d{2})/i);
+
+  const issuedAt = parseBrazilianDate(issuedText);
+  const municipalSignedAt = parseBrazilianDate(municipalSignature?.[1] ?? municipalSignature?.[2]);
+  const companySignedAt = parseBrazilianDate(companySignature?.[1]);
+  const startFromIssue = /a\s+partir\s+da\s+data\s+de\s+emiss[aã]o\s+desta\s+ordem\s+de\s+servi[cç]o/i.test(flat);
+  const explicitStartText = firstMatch(flat, [
+    /(?:in[ií]cio\s+dos\s+servi[cç]os?|iniciar\s+os\s+servi[cç]os?)[^.;]{0,140}?(?:em|no\s+dia|a\s+partir\s+de|para\s+o\s+dia)\s*(\d{2}\/\d{2}\/\d{4})/i,
   ]);
-  const relativeDays = text.match(/(?:iniciar|in[ií]cio dos servi[cç]os?|iniciados?)[^\n]{0,130}?(?:em at[eé]|no prazo de|em)\s*(\d{1,3})\s*dias?\s*(?:corridos?)?\s*(?:da|ap[oó]s|contados? da)\s*(?:assinatura|emiss[aã]o|recebimento)\s*(?:da\s+)?(?:ordem\s+de\s+servi[cç]o|OS)?/i);
-  const signedAt = parseBrazilianDate(signedText);
-  const directStart = parseBrazilianDate(explicitStart);
-  let serviceStartDate = directStart;
-  let serviceStartRule = explicitStart ? 'Data de início expressamente indicada na Ordem de Serviço' : undefined;
-  if (!serviceStartDate && signedAt && relativeDays) {
-    const days = Number(relativeDays[1]);
-    const [year, month, day] = signedAt.split('-').map(Number);
-    const calculated = new Date(year, month - 1, day + days);
-    serviceStartDate = `${calculated.getFullYear()}-${String(calculated.getMonth()+1).padStart(2,'0')}-${String(calculated.getDate()).padStart(2,'0')}`;
-    serviceStartRule = `Prazo de até ${days} dias corridos contado da assinatura/emissão da OS; data calculada automaticamente`;
-  }
-  const evidence = explicitStart
-    ? extractEvidence(text, ['início dos serviços', 'iniciar', 'data prevista para o início'])
-    : relativeDays
-      ? cleanSnippet(relativeDays[0])
-      : signedText
-        ? cleanSnippet(signedText)
+  const directStart = parseBrazilianDate(explicitStartText);
+  const serviceStartDate = directStart ?? (startFromIssue ? issuedAt : undefined);
+  const serviceStartRule = directStart
+    ? 'Data de início expressamente indicada na Ordem de Serviço'
+    : startFromIssue && issuedAt
+      ? 'Início autorizado a partir da data de emissão da Ordem de Serviço'
+      : undefined;
+  const evidence = startFromIssue
+    ? 'A contratada fica autorizada a iniciar os serviços a partir da data de emissão desta Ordem de Serviço.'
+    : explicitStartText
+      ? cleanSnippet(explicitStartText)
+      : issuedText
+        ? cleanSnippet(issuedText)
         : undefined;
+
   return {
-    orderServiceSignedAt: signedAt,
+    orderServiceNumber,
+    orderServiceIssuedAt: issuedAt,
+    orderServiceMunicipalSignedAt: municipalSignedAt,
+    orderServiceCompanySignedAt: companySignedAt,
+    orderServiceSignedAt: issuedAt ?? municipalSignedAt,
     serviceStartDate,
     serviceStartRule,
     serviceStartEvidence: evidence,
