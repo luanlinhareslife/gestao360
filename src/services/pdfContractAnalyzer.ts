@@ -335,16 +335,16 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
 function extractContractParties(text: string) {
   const head = text.slice(0, 18000);
   const agency = firstMatch(head, [
-    /O\\s+(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?\\s*[—–-]?\\s*DER\\s*\\/\\s*RO)/i,
-    /(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?\\s*[—–-]?\\s*DER\\s*\\/\\s*RO)/i,
+    /O\s+(DEPARTAMENTO\s+ESTADUAL\s+DE\s+ESTRADAS\s+DE\s+RODAGEM\s+E\s+TRANSPORTES?\s*[—–-]?\s*DER\s*\/\s*RO)/i,
+    /(DEPARTAMENTO\s+ESTADUAL\s+DE\s+ESTRADAS\s+DE\s+RODAGEM\s+E\s+TRANSPORTES?\s*[—–-]?\s*DER\s*\/\s*RO)/i,
   ]);
   const contractor = firstMatch(head, [
-    /firma\\s+(MM\\s+SERVI[CÇ]OS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
-    /(MM\\s+SERVI[CÇ]OS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
-    /CONTRATADA\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
+    /firma\s+(MM\s+SERVI[CÇ]OS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
+    /(MM\s+SERVI[CÇ]OS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
+    /CONTRATADA\s*[:\-]?\s*([^\n]{3,180})/i,
   ]);
   const contractorIndex = contractor ? head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR')) : -1;
-  const cnpjMatches = [...head.matchAll(/CNPJ(?:\\/MF)?\\s*(?:n[º°.]?\\s*)?[:\\-]?\\s*(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
+  const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?\s*(?:n[º°.]?\s*)?[:\-]?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const agencyCnpj = cnpjMatches[0]?.[1];
   const contractorCnpj = contractorIndex >= 0
     ? cnpjMatches.find(match => (match.index ?? -1) > contractorIndex)?.[1]
@@ -360,17 +360,17 @@ function extractContractParties(text: string) {
 function extractContractObject(text: string) {
   const head = text.slice(0, 22000);
   const patterns = [
-    /CLÁUSULA\\s+PRIMEIRA[\\s\\S]{0,700}?PARÁGRAFO\\s+PRIMEIRO\\s*[-–—:]\\s*([\\s\\S]{30,900}?)(?=\\s*PARÁGRAFO\\s+SEGUNDO)/i,
-    /objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,700}?)(?=\\s*(?:CLÁUSULA|\\b1\\.2\\b|\\b2\\.))/i,
+    /CLÁUSULA\s+PRIMEIRA[\s\S]{0,700}?PARÁGRAFO\s+PRIMEIRO\s*[-–—:]\s*([\s\S]{30,900}?)(?=\s*PARÁGRAFO\s+SEGUNDO)/i,
+    /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
   ];
-  return firstMatch(head, patterns)?.replace(/\\s+/g, ' ').trim();
+  return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
 }
 
 function extractDuration(text: string, kind: 'validity' | 'execution') {
   const head = text.slice(0, 30000);
   const patterns = kind === 'execution'
     ? [
-        /(?:prazo\s+de\s+execução|execução\s+dos\s+serviços)[\s\S]{0,180}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
+        /(?:prazo\s+(?:previsto\s+para\s+)?execução|execução\s+total\s+dos\s+serviços)[\s\S]{0,240}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
         /executad[oa]s?[\s\S]{0,140}?(\d{1,4})\s*dias/i,
       ]
     : [
@@ -488,7 +488,8 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const guaranteeText = firstMatch(text.slice(0, 30000), [
-    /garantia(?:\s+contratual)?[\s\S]{0,180}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantia(?:\s+de\s+execução)?[\s\S]{0,500}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantia(?:\s+contratual)?[\s\S]{0,500}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
     /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,100}garantia/i,
   ]);
   const value = parseMoney(valueText);
