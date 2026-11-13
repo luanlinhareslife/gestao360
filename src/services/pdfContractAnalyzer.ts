@@ -55,7 +55,7 @@ export type ExtractedContract = {
     seiProcess?: string;
     contractingAgency?: string;
     contractor?: string;
-    contractorCnpj?: string;
+    contractorCnpj?: string;\n    agencyCnpj?: string;
     object?: string;
     validityRule?: string;
     executionRule?: string;
@@ -335,32 +335,35 @@ function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
 function extractContractParties(text: string) {
   const head = text.slice(0, 18000);
   const agency = firstMatch(head, [
-    /(?:CONTRATANTE|órgão\s+contratante)\s*[:\-]?\s*([^\n]{3,180})/i,
-    /(Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i,
+    /O\\s+(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?\\s*[—–-]?\\s*DER\\s*\\/\\s*RO)/i,
+    /(DEPARTAMENTO\\s+ESTADUAL\\s+DE\\s+ESTRADAS\\s+DE\\s+RODAGEM\\s+E\\s+TRANSPORTES?\\s*[—–-]?\\s*DER\\s*\\/\\s*RO)/i,
   ]);
   const contractor = firstMatch(head, [
-    /(?:CONTRATADA|CONTRATADO|empresa\s+contratada)\s*[:\-]?\s*([^\n]{3,180})/i,
-    /(MM\s+SERVIÇOS\s+ESPECIALIZADOS\s+LTDA\.?)/i,
+    /firma\\s+(MM\\s+SERVI[CÇ]OS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
+    /(MM\\s+SERVI[CÇ]OS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
+    /CONTRATADA\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
   ]);
-  const cnpjMatches = [...head.matchAll(/(?:CNPJ\s*(?:n[º°.]?\s*)?[:\-]?\s*)?(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
-  const contractorCnpj = cnpjMatches.find(match => {
-    const before = head.slice(Math.max(0, (match.index ?? 0) - 180), match.index);
-    return /contratada|contratado|empresa/i.test(before);
-  })?.[1];
+  const contractorIndex = contractor ? head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR')) : -1;
+  const cnpjMatches = [...head.matchAll(/CNPJ(?:\\/MF)?\\s*(?:n[º°.]?\\s*)?[:\\-]?\\s*(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
+  const agencyCnpj = cnpjMatches[0]?.[1];
+  const contractorCnpj = contractorIndex >= 0
+    ? cnpjMatches.find(match => (match.index ?? -1) > contractorIndex)?.[1]
+    : cnpjMatches[1]?.[1];
   return {
-    contractingAgency: agency?.replace(/^.*?(Departamento Estadual de Estradas de Rodagem e Transportes|DER\s*\/\s*RO)/i, '$1').trim(),
+    contractingAgency: agency?.trim(),
     contractor: contractor?.trim(),
     contractorCnpj,
+    agencyCnpj,
   };
 }
 
 function extractContractObject(text: string) {
   const head = text.slice(0, 22000);
   const patterns = [
-    /(?:CLÁUSULA\s+PRIMEIRA|CLÁUSULA\s+1ª|DO\s+OBJETO)[\s\S]{0,180}?objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,900}?)(?=\s*(?:CLÁUSULA\s+(?:SEGUNDA|2ª)|\b2\s*\.|\b1\.2\b))/i,
-    /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
+    /CLÁUSULA\\s+PRIMEIRA[\\s\\S]{0,700}?PARÁGRAFO\\s+PRIMEIRO\\s*[-–—:]\\s*([\\s\\S]{30,900}?)(?=\\s*PARÁGRAFO\\s+SEGUNDO)/i,
+    /objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,700}?)(?=\\s*(?:CLÁUSULA|\\b1\\.2\\b|\\b2\\.))/i,
   ];
-  return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
+  return firstMatch(head, patterns)?.replace(/\\s+/g, ' ').trim();
 }
 
 function extractDuration(text: string, kind: 'validity' | 'execution') {
@@ -521,7 +524,7 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       seiProcess: processRefs.seiProcess,
       contractingAgency: parties.contractingAgency,
       contractor: parties.contractor,
-      contractorCnpj: parties.contractorCnpj,
+      contractorCnpj: parties.contractorCnpj,\n      agencyCnpj: parties.agencyCnpj,
       object,
       value,
       signedAt,
