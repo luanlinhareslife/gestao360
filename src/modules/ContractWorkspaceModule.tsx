@@ -107,7 +107,7 @@ const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFra
 
 const CONTRACTS_KEY = 'gestao360.contracts.v1';
 type ContractDraft = { number: string; process: string; agency: string; contractor: string; cnpj: string; object: string; value: string; signedAt: string; executionDays: string; validity: string; guaranteePercent: string };
-const emptyContractDraft: ContractDraft = { number: '', process: '', agency: '', contractor: '', cnpj: '', object: '', value: '', signedAt: '', executionDays: '', validity: '', guaranteePercent: '0' };
+const emptyContractDraft: ContractDraft = { number: '', process: '', agency: '', contractor: '', cnpj: '', object: '', value: '', signedAt: '', executionDays: '', validity: '', guaranteePercent: '' };
 
 export default function ContractWorkspaceModule() {
   const [contractList, setContractList] = useState<Contract[]>(() => {
@@ -263,8 +263,7 @@ export default function ContractWorkspaceModule() {
       if (detected.value === undefined) missing.push('valor');
       if (!signedAt) missing.push('data de assinatura');
       if (!detected.executionDays) missing.push('prazo de execução');
-      if (detected.guaranteePercent === undefined) missing.push('garantia');
-      if (!detected.validityDays) missing.push('vigência');
+      if (!detected.validityDays && !detected.validityEndDate) missing.push('vigência');
       if (!detected.object) missing.push('objeto');
 
       setDraft(current => ({
@@ -283,13 +282,16 @@ export default function ContractWorkspaceModule() {
         guaranteePercent: detected.guaranteePercent !== undefined
           ? String(detected.guaranteePercent)
           : current.guaranteePercent,
-        validity: detected.validityDays
-          ? `${detected.validityDays} dias${detected.validityRule ? ' · ' + detected.validityRule : ''}`
-          : current.validity,
+        validity: detected.validityEndDate
+          ? `Até ${detected.validityEndDate.split('-').reverse().join('/')}${detected.validityRule ? ' · ' + detected.validityRule : ''}`
+          : detected.validityDays
+            ? `${detected.validityDays} dias${detected.validityRule ? ' · ' + detected.validityRule : ''}`
+            : current.validity,
       }));
+      const reviewNotes = [...missing, ...(detected.guaranteePercent === undefined ? ['percentual de garantia (não identificado no documento)'] : [])];
       setNewContractReadMessage(
-        missing.length
-          ? `Leitura concluída. Confira os campos preenchidos; não consegui identificar com segurança: ${missing.join(', ')}. Complete manualmente os campos restantes.`
+        reviewNotes.length
+          ? `Leitura concluída. Confira os campos preenchidos; não consegui identificar com segurança: ${reviewNotes.join(', ')}. A garantia ficará em branco para conferência, sem presumir 0%. Complete manualmente os campos restantes.`
           : 'Leitura concluída. Confira todos os campos antes de salvar. Os dados ainda não foram cadastrados.'
       );
     } catch (error) {
@@ -410,7 +412,7 @@ export default function ContractWorkspaceModule() {
             <label>Valor contratual (R$) *<input value={draft.value} onChange={e => setDraft(v => ({...v, value:e.target.value}))} placeholder="Ex.: 530400,00" /></label>
             <label>Data da assinatura<input value={draft.signedAt} onChange={e => setDraft(v => ({...v, signedAt:e.target.value}))} placeholder="dd/mm/aaaa" /></label>
             <label>Prazo de execução (dias) *<input type="number" min="1" value={draft.executionDays} onChange={e => setDraft(v => ({...v, executionDays:e.target.value}))} /></label>
-            <label>Garantia (%)<input type="number" min="0" max="100" step="0.01" value={draft.guaranteePercent} onChange={e => setDraft(v => ({...v, guaranteePercent:e.target.value}))} /></label>
+            <label>Garantia (%)<input type="number" min="0" max="100" step="0.01" placeholder="Não identificada" value={draft.guaranteePercent} onChange={e => setDraft(v => ({...v, guaranteePercent:e.target.value}))} /></label>
             <label>Vigência / validade<input value={draft.validity} onChange={e => setDraft(v => ({...v, validity:e.target.value}))} placeholder="Conforme contrato" /></label>
             <label className="contract-new-object">Objeto do contrato *<textarea value={draft.object} onChange={e => setDraft(v => ({...v, object:e.target.value}))} rows={3} /></label>
           </div>
