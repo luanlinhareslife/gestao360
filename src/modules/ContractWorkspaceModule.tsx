@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { contracts, type Contract } from '../data/contracts';
+import { contracts } from '../data/contracts';
+import { extractContractFromPdf, type ExtractedContract } from '../services/pdfContractAnalyzer';
 
 type WorkspaceTab = 'Resumo' | 'Tarefas' | 'Documentos' | 'Cronograma físico-financeiro' | 'Medições' | 'Diário 360';
 type Stage = {
@@ -14,12 +15,18 @@ type Stage = {
 };
 type ScheduleByContract = Record<string, Stage[]>;
 type UploadedSchedule = { contractId: string; name: string; size: number; type: string; savedAt: string };
+type ContractDocument = { id: string; contractId: string; name: string; size: number; type: string; savedAt: string; category: string; file: File; extracted?: ExtractedContract; analysisStatus: 'Lido' | 'Armazenado' | 'Falha na leitura' };
 const FILE_DB = 'gestao360-contract-files';
 const FILE_STORE = 'schedules';
+const DOCUMENT_STORE = 'documents';
 function openFileDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(FILE_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(FILE_STORE, { keyPath: 'contractId' });
+    const request = indexedDB.open(FILE_DB, 2);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(FILE_STORE)) db.createObjectStore(FILE_STORE, { keyPath: 'contractId' });
+      if (!db.objectStoreNames.contains(DOCUMENT_STORE)) db.createObjectStore(DOCUMENT_STORE, { keyPath: 'id' });
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -33,6 +40,47 @@ async function saveScheduleFile(contractId: string, file: File) {
     transaction.onerror = () => reject(transaction.error);
   });
   db.close();
+}
+async function saveContractDocument(document: ContractDocument) {
+  const db = await openFileDb();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(DOCUMENT_STORE, 'readwrite');
+    transaction.objectStore(DOCUMENT_STORE).put(document);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+async function readContractDocuments(contractId: string): Promise<ContractDocument[]> {
+  const db = await openFileDb();
+  const records = await new Promise<ContractDocument[]>((resolve, reject) => {
+    const request = db.transaction(DOCUMENT_STORE, 'readonly').objectStore(DOCUMENT_STORE).getAll();
+    request.onsuccess = () => resolve((request.result as ContractDocument[]).filter(item => item.contractId === contractId));
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return records.sort((a,b) => b.savedAt.localeCompare(a.savedAt));
+}
+async function deleteContractDocument(id: string) {
+  const db = await openFileDb();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(DOCUMENT_STORE, 'readwrite');
+    transaction.objectStore(DOCUMENT_STORE).delete(id);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+function classifyDocument(name: string): string {
+  const value = name.toLocaleLowerCase('pt-BR');
+  if (/contrato|termo/.test(value)) return 'Contrato / Aditivo';
+  if (/art|responsabilidade/.test(value)) return 'ART / Responsabilidade técnica';
+  if (/cronograma|planilha|orcamento|orçamento/.test(value)) return 'Planilha / Cronograma';
+  if (/seguro|garantia|apolice|apólice/.test(value)) return 'Seguro / Garantia';
+  if (/ordem.?de.?servico|ordem.?de.?serviço|\bos\b/.test(value)) return 'Ordem de Serviço';
+  if (/projeto|desenho|memorial/.test(value)) return 'Projeto / Memorial';
+  if (/medicao|medição|memoria|memória/.test(value)) return 'Medição';
+  return 'Documento geral';
 }
 async function readScheduleFile(contractId: string): Promise<{ file: File; meta: UploadedSchedule } | null> {
   const db = await openFileDb();
@@ -73,10 +121,16 @@ export default function ContractWorkspaceModule() {
   const [uploadedSchedule, setUploadedSchedule] = useState<UploadedSchedule | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [documents, setDocuments] = useState<ContractDocument[]>([]);
+  const [documentError, setDocumentError] = useState('');
+  const [readingDocument, setReadingDocument] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<ExtractedContract | null>(null);
 
   useEffect(() => {
-    if (!selectedId) { setUploadedSchedule(null); return; }
+    if (!selectedId) { setUploadedSchedule(null); setDocuments([]); return; }
     readScheduleFile(selectedId).then(result => setUploadedSchedule(result?.meta ?? null)).catch(() => setUploadError('Não foi possível consultar o arquivo salvo neste dispositivo.'));
+    readContractDocuments(selectedId).then(setDocuments).catch(() => setDocumentError('Não foi possível consultar os documentos deste contrato.'));
+    setSelectedAnalysis(null);
   }, [selectedId]);
 
   const handleScheduleUpload = async (file?: File) => {
@@ -93,6 +147,61 @@ export default function ContractWorkspaceModule() {
     } catch {
       setUploadError('Não foi possível guardar o arquivo neste dispositivo. Verifique o espaço disponível.');
     } finally { setUploading(false); }
+  };
+
+  const handleContractDocuments = async (files: FileList | null) => {
+    if (!files || !selected) return;
+    setDocumentError('');
+    setReadingDocument(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 40 * 1024 * 1024) {
+          setDocumentError(`${file.name}: arquivo acima do limite de 40 MB.`);
+          continue;
+        }
+        const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+        const supported = ['pdf','doc','docx','xls','xlsx','png','jpg','jpeg','webp'];
+        if (!supported.includes(extension)) {
+          setDocumentError(`${file.name}: formato não suportado nesta versão.`);
+          continue;
+        }
+        const base = {
+          id: crypto.randomUUID(), contractId: selected.id, name: file.name, size: file.size,
+          type: file.type || extension, savedAt: new Date().toISOString(),
+          category: classifyDocument(file.name), file, analysisStatus: 'Armazenado' as ContractDocument['analysisStatus'],
+        };
+        let documentRecord: ContractDocument = base;
+        if (extension === 'pdf') {
+          try {
+            const extracted = await extractContractFromPdf(file);
+            documentRecord = { ...base, extracted, analysisStatus: extracted.text ? 'Lido' : 'Falha na leitura' };
+            if (extracted.text) setSelectedAnalysis(extracted);
+          } catch {
+            documentRecord = { ...base, analysisStatus: 'Falha na leitura' };
+          }
+        }
+        await saveContractDocument(documentRecord);
+      }
+      setDocuments(await readContractDocuments(selected.id));
+    } catch {
+      setDocumentError('Não foi possível salvar os arquivos neste dispositivo. Verifique o espaço disponível.');
+    } finally {
+      setReadingDocument(false);
+    }
+  };
+
+  const removeContractDocument = async (id: string) => {
+    if (!window.confirm('Excluir este arquivo da pasta contratual?')) return;
+    await deleteContractDocument(id);
+    setDocuments(await readContractDocuments(selectedId));
+    if (selectedAnalysis && documents.find(item => item.id === id)?.extracted === selectedAnalysis) setSelectedAnalysis(null);
+  };
+
+  const downloadContractDocument = (item: ContractDocument) => {
+    const url = URL.createObjectURL(item.file);
+    const link = document.createElement('a');
+    link.href = url; link.download = item.name; link.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadSchedule = async () => {
@@ -252,7 +361,16 @@ export default function ContractWorkspaceModule() {
               <div className="schedule-validation"><strong>Conferência do planejamento</strong><span>Peso físico: {percent(totals.weight)} de 100%</span><span>Valor previsto: {money(totals.planned)} de {money(selected.value)}</span><small>O cronograma poderá ser considerado completo quando o peso físico atingir 100% e o valor previsto corresponder ao valor contratual ou ao valor planejado formalmente.</small></div>
             </div>}
             {tab === 'Tarefas' && <div className="contract-tab-panel"><h3>Tarefas do contrato</h3><p>As obrigações identificadas no contrato serão organizadas aqui por responsável, prazo, prioridade e situação. A vinculação automática das tarefas será conectada ao Motor 360 na próxima etapa.</p></div>}
-            {tab === 'Documentos' && <div className="contract-tab-panel"><h3>Documentos contratuais</h3><p>Espaço para contrato assinado, ordem de serviço, ARTs, garantias, aditivos, projetos e demais arquivos vinculados a esta pasta.</p></div>}
+            {tab === 'Documentos' && <div className="contract-tab-panel">
+              <div className="contract-documents-heading"><div><h3>Central de documentos do contrato</h3><p>Envie os arquivos prontos. O Gestão 360 classifica pelo nome e faz leitura textual automática de PDFs pesquisáveis quando possível.</p></div><label className="primary-button contract-document-upload">{readingDocument ? 'Processando arquivos...' : '↑ Enviar documentos'}<input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,application/pdf" onChange={event => { void handleContractDocuments(event.target.files); event.currentTarget.value = ''; }} /></label></div>
+              <div className="contract-document-types">
+                <span><i>▤</i> Contrato e aditivos</span><span><i>✓</i> ARTs e responsabilidade técnica</span><span><i>▥</i> Planilhas e cronogramas</span><span><i>◷</i> Garantias e ordens de serviço</span>
+              </div>
+              {documentError && <p className="schedule-form-error">{documentError}</p>}
+              {documents.length ? <div className="contract-document-list">{documents.map(item => <article className="contract-document-row" key={item.id}><span className="contract-document-icon">{item.name.toLowerCase().endsWith('.pdf') ? '▤' : '▧'}</span><div className="contract-document-main"><strong>{item.name}</strong><small>{item.category} · {(item.size / 1024 / 1024).toLocaleString('pt-BR',{maximumFractionDigits:2})} MB · {new Date(item.savedAt).toLocaleDateString('pt-BR')}</small></div><span className={item.analysisStatus === 'Lido' ? 'contract-document-status read' : 'contract-document-status'}>{item.analysisStatus === 'Lido' ? 'Leitura concluída' : item.analysisStatus === 'Falha na leitura' ? 'Leitura não disponível' : 'Arquivo guardado'}</span>{item.extracted && <button type="button" onClick={() => setSelectedAnalysis(item.extracted ?? null)}>Ver análise</button>}<button type="button" onClick={() => downloadContractDocument(item)}>Baixar</button><button type="button" className="contract-document-delete" onClick={() => void removeContractDocument(item.id)} aria-label="Excluir documento">×</button></article>)}</div> : <div className="schedule-empty"><span>▤</span><strong>Nenhum documento anexado a esta pasta</strong><p>Envie os arquivos existentes sem precisar preencher formulários manualmente.</p></div>}
+              {selectedAnalysis && <section className="contract-analysis-panel"><div><span className="eyebrow">LEITURA AUTOMÁTICA DO PDF</span><h4>{selectedAnalysis.fileName}</h4></div><div className="contract-analysis-grid">{selectedAnalysis.detected.number && <p><small>Número</small><strong>{selectedAnalysis.detected.number}</strong></p>}{selectedAnalysis.detected.process && <p><small>Processo</small><strong>{selectedAnalysis.detected.process}</strong></p>}{selectedAnalysis.detected.value !== undefined && <p><small>Valor identificado</small><strong>{money(selectedAnalysis.detected.value)}</strong></p>}{selectedAnalysis.detected.executionDays && <p><small>Prazo identificado</small><strong>{selectedAnalysis.detected.executionDays} dias</strong></p>}</div><h4>Obrigações localizadas para conferência ({selectedAnalysis.obligations.length})</h4>{selectedAnalysis.obligations.length ? selectedAnalysis.obligations.map(item => <div className="contract-analysis-obligation" key={item.id}><strong>{item.title}</strong><small>{item.deadline} · Prioridade {item.severity}</small><p>{item.action}</p><small>Fonte: {item.source}</small></div>) : <p className="contract-tab-help">Nenhuma obrigação prevista nas regras atuais foi localizada. Isso não significa ausência de obrigações no contrato.</p>}<p className="contract-analysis-disclaimer">A leitura é uma triagem automática por texto e regras. Não substitui OCR de PDF escaneado, leitura integral nem validação humana. Os dados extraídos ainda não alteram o cadastro oficial do contrato.</p></section>}
+              <p className="contract-document-storage-note">Nesta etapa, os arquivos ficam armazenados localmente neste computador. A sincronização segura com a versão web será implementada separadamente.</p>
+            </div>}
             {tab === 'Medições' && <div className="contract-tab-panel"><h3>Medições deste contrato</h3><p>As planilhas, memórias de cálculo, protocolos, aprovações e pagamentos ficarão vinculados a esta pasta. A consolidação geral será exibida na aba Medições da plataforma.</p></div>}
             {tab === 'Diário 360' && <div className="contract-tab-panel"><h3>Diário de Obras</h3><p>O Diário 360 existente será preservado. A vinculação automática dos diários a este contrato depende da integração segura com a base web atual.</p><a className="primary-button schedule-diary-link" href="https://diario-360-9ux61w.v2.appdeploy.ai/" target="_blank" rel="noreferrer">Abrir Diário 360 em nova aba ↗</a></div>}
           </> : <div className="schedule-empty"><strong>Nenhum contrato disponível nesta versão</strong><p>Os cadastros da versão web precisam ser integrados antes de aparecerem aqui.</p></div>}
