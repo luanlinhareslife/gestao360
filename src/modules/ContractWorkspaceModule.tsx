@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { contracts } from '../data/contracts';
+import { contracts as seedContracts, type Contract } from '../data/contracts';
 import { extractContractFromPdf, type ExtractedContract } from '../services/pdfContractAnalyzer';
 
 type WorkspaceTab = 'Resumo' | 'Tarefas' | 'Documentos' | 'Cronograma físico-financeiro' | 'Medições' | 'Diário 360';
@@ -105,8 +105,21 @@ const STORAGE_KEY = 'gestao360.workSchedules.v1';
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
+const CONTRACTS_KEY = 'gestao360.contracts.v1';
+type ContractDraft = { number: string; process: string; agency: string; contractor: string; cnpj: string; object: string; value: string; signedAt: string; executionDays: string; validity: string; guaranteePercent: string };
+const emptyContractDraft: ContractDraft = { number: '', process: '', agency: '', contractor: '', cnpj: '', object: '', value: '', signedAt: '', executionDays: '', validity: '', guaranteePercent: '0' };
+
 export default function ContractWorkspaceModule() {
-  const [selectedId, setSelectedId] = useState(contracts[0]?.id ?? '');
+  const [contractList, setContractList] = useState<Contract[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CONTRACTS_KEY) ?? '[]') as Contract[];
+      return [...seedContracts, ...saved.filter(item => !seedContracts.some(seed => seed.id === item.id))];
+    } catch { return seedContracts; }
+  });
+  const [showNewContract, setShowNewContract] = useState(false);
+  const [draft, setDraft] = useState<ContractDraft>(emptyContractDraft);
+  const [contractError, setContractError] = useState('');
+  const [selectedId, setSelectedId] = useState(contractList[0]?.id ?? '');
   const [tab, setTab] = useState<WorkspaceTab>('Resumo');
   const [schedule, setSchedule] = useState<ScheduleByContract>(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as ScheduleByContract; }
@@ -218,7 +231,38 @@ export default function ContractWorkspaceModule() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(schedule));
   }, [schedule]);
 
-  const selected = contracts.find(item => item.id === selectedId);
+  useEffect(() => {
+    const additions = contractList.filter(item => !seedContracts.some(seed => seed.id === item.id));
+    localStorage.setItem(CONTRACTS_KEY, JSON.stringify(additions));
+  }, [contractList]);
+
+  const saveNewContract = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = Number(draft.value.replace(/\\./g, '').replace(',', '.'));
+    const executionDays = Number(draft.executionDays);
+    const guaranteePercent = Number(draft.guaranteePercent || 0);
+    if (!draft.number.trim() || !draft.agency.trim() || !draft.contractor.trim() || !draft.object.trim()) {
+      setContractError('Preencha número, contratante, contratada e objeto do contrato.');
+      return;
+    }
+    if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(executionDays) || executionDays <= 0) {
+      setContractError('Informe um valor contratual e prazo de execução válidos.');
+      return;
+    }
+    const id = `contract-${crypto.randomUUID()}`;
+    const created: Contract = {
+      id, number: draft.number.trim(), process: draft.process.trim() || 'Não informado',
+      agency: draft.agency.trim(), contractor: draft.contractor.trim(), cnpj: draft.cnpj.trim(),
+      object: draft.object.trim(), value, signedAt: draft.signedAt.trim() || 'Não informado',
+      executionDays, validity: draft.validity.trim() || 'Conforme contrato',
+      guaranteePercent, guaranteeValue: value * guaranteePercent / 100, status: 'Cadastrado',
+    };
+    setContractList(items => [...items, created]);
+    setSelectedId(id); setTab('Resumo'); setShowNewContract(false);
+    setDraft(emptyContractDraft); setContractError('');
+  };
+
+  const selected = contractList.find(item => item.id === selectedId);
   const stages = selected ? schedule[selected.id] ?? [] : [];
   const totals = useMemo(() => ({
     weight: stages.reduce((sum, item) => sum + item.physicalWeight, 0),
@@ -281,16 +325,36 @@ export default function ContractWorkspaceModule() {
           <h1>Contratos</h1>
           <p>Cada contrato reúne seus documentos, tarefas, planejamento, medições e diário de obra.</p>
         </div>
-        <span className="contract-source-note">Base atual do desktop · sincronização com a versão web ainda pendente</span>
+        <button className="primary-button" type="button" onClick={() => { setShowNewContract(true); setContractError(''); }}>+ Novo contrato</button>
       </div>
 
+      {showNewContract && <div className="contract-new-overlay" role="dialog" aria-modal="true" aria-label="Novo contrato">
+        <form className="contract-new-form" onSubmit={saveNewContract}>
+          <div className="contract-new-heading"><div><span className="eyebrow">GESTÃO 360 • CADASTRO</span><h2>Novo contrato</h2><p>Cadastre os dados oficiais para criar a pasta contratual.</p></div><button type="button" className="close-button" onClick={() => setShowNewContract(false)}>×</button></div>
+          <div className="contract-new-grid">
+            <label>Número do contrato *<input value={draft.number} onChange={e => setDraft(v => ({...v, number:e.target.value}))} placeholder="Ex.: 56/2026" /></label>
+            <label>Número do processo<input value={draft.process} onChange={e => setDraft(v => ({...v, process:e.target.value}))} placeholder="Ex.: 1-1143/2026" /></label>
+            <label>Contratante / órgão público *<input value={draft.agency} onChange={e => setDraft(v => ({...v, agency:e.target.value}))} /></label>
+            <label>Contratada *<input value={draft.contractor} onChange={e => setDraft(v => ({...v, contractor:e.target.value}))} /></label>
+            <label>CNPJ da contratada<input value={draft.cnpj} onChange={e => setDraft(v => ({...v, cnpj:e.target.value}))} /></label>
+            <label>Valor contratual (R$) *<input value={draft.value} onChange={e => setDraft(v => ({...v, value:e.target.value}))} placeholder="Ex.: 530400,00" /></label>
+            <label>Data da assinatura<input value={draft.signedAt} onChange={e => setDraft(v => ({...v, signedAt:e.target.value}))} placeholder="dd/mm/aaaa" /></label>
+            <label>Prazo de execução (dias) *<input type="number" min="1" value={draft.executionDays} onChange={e => setDraft(v => ({...v, executionDays:e.target.value}))} /></label>
+            <label>Garantia (%)<input type="number" min="0" max="100" step="0.01" value={draft.guaranteePercent} onChange={e => setDraft(v => ({...v, guaranteePercent:e.target.value}))} /></label>
+            <label>Vigência / validade<input value={draft.validity} onChange={e => setDraft(v => ({...v, validity:e.target.value}))} placeholder="Conforme contrato" /></label>
+            <label className="contract-new-object">Objeto do contrato *<textarea value={draft.object} onChange={e => setDraft(v => ({...v, object:e.target.value}))} rows={3} /></label>
+          </div>
+          {contractError && <p className="schedule-form-error">{contractError}</p>}
+          <div className="contract-new-actions"><button type="button" className="outline-button" onClick={() => setShowNewContract(false)}>Cancelar</button><button type="submit" className="primary-button">Salvar contrato e abrir pasta</button></div>
+        </form>
+      </div>}
       <div className="contract-workspace-layout">
         <aside className="contract-picker">
           <div className="measurement-section-heading">
             <div><span className="eyebrow">PASTAS</span><h2>Contratos cadastrados</h2></div>
-            <span>{contracts.length}</span>
+            <span>{contractList.length}</span>
           </div>
-          {contracts.map(contract => (
+          {contractList.map(contract => (
             <button key={contract.id} className={selectedId === contract.id ? 'contract-picker-item active' : 'contract-picker-item'} onClick={() => { setSelectedId(contract.id); setTab('Resumo'); }}>
               <span className="contract-picker-icon">▤</span>
               <span><strong>Contrato nº {contract.number}</strong><small>{companyLabel(contract.contractor)}</small><small>{contract.agency}</small></span>
