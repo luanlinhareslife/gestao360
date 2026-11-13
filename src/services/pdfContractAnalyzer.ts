@@ -386,7 +386,7 @@ function extractDuration(text: string, kind: 'validity' | 'execution') {
   const head = text.slice(0, 30000);
   const patterns = kind === 'execution'
     ? [
-        /(?:prazo\s+(?:previsto\s+para\s+)?execução|execução\s+total\s+dos\s+serviços)[\s\S]{0,260}?(\d{1,4})\s*(?:\([^)]{0,80}\)\s*)?dias/i,
+        /(?:prazo\s+(?:para|previsto\s+para)\s+execução|execução\s+total\s+dos\s+serviços)[\s\S]{0,260}?(\d{1,4})\s*(?:\([^)]{0,80}\)\s*)?dias/i,
         /executad[oa]s?[\s\S]{0,140}?(\d{1,4})\s*dias/i,
       ]
     : [
@@ -495,17 +495,17 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const object = extractContractObject(text);
   const valueText = firstMatch(text, [
     /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[\s\S]{0,140}?R\$\s*([0-9.]+,[0-9]{2})/i,
-    /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R$\s*([0-9.]+,[0-9]{2})/i,
+    /valor\s+(?:global\s+)?(?:do\s+presente\s+contrato|total\s+do\s+contrato|do\s+contrato)[\s\S]{0,140}?R\$\s*([0-9.]+,[0-9]{2})/i,
   ]);
   const signatureStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula vigésima quarta');
   const signatureBlock = signatureStart >= 0 ? text.slice(signatureStart) : text;
   const partySignatures = [...signatureBlock.matchAll(/Documento\s+assinado\s+eletronicamente\s+por\s+([^,\n]{3,100})[^\n]{0,180}?\bem\s+(\d{2}\/\d{2}\/\d{4})/gi)]
     .filter(match => !/procurador\s+do\s+estado/i.test(match[0]));
   const signedAt = firstMatch(text.slice(0, 12000), [
-    /(?:data\\s+da\\s+assinatura|assinado\\s+em|celebrado\\s+em|^\\s*De:)\\s*[^0-9]{0,100}(\\d{2}\\/\\d{2}\\/\\d{4})/im,
+    /(?:data\s+da\s+assinatura|assinado\s+em|celebrado\s+em|^\s*De:)\s*[^0-9]{0,100}(\d{2}\/\d{2}\/\d{4})/im,
   ]) ?? (() => {
-    const match = text.slice(0, 9000).match(/Aos\\s+(\\d{1,2})\\s+dias\\s+do\\s+m[eê]s\\s+de\\s+([a-zçã]+)\\s+do\\s+ano\\s+de\\s+(\\d{4})/i);
-    return match ? parsePortugueseDate(\`\${match[1]} de \${match[2]} de \${match[3]}\`)?.split('-').reverse().join('/') : undefined;
+    const match = text.slice(0, 9000).match(/Aos\s+(\d{1,2})\s+dias\s+do\s+m[eê]s\s+de\s+([a-zçã]+)\s+do\s+ano\s+de\s+(\d{4})/i);
+    return match ? parsePortugueseDate(`${match[1]} de ${match[2]} de ${match[3]}`)?.split('-').reverse().join('/') : undefined;
   })();
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
