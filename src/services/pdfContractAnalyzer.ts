@@ -49,6 +49,18 @@ export type ExtractedContract = {
     serviceStartEvidence?: string;
     executionDays?: number;
     guaranteePercent?: number;
+    guaranteeValue?: number;
+    validityDays?: number;
+    administrativeProcess?: string;
+    seiProcess?: string;
+    contractingAgency?: string;
+    contractor?: string;
+    contractorCnpj?: string;
+    object?: string;
+    validityRule?: string;
+    executionRule?: string;
+    fieldEvidence?: Record<string, string>;
+    fieldConfidence?: Record<string, 'ALTA' | 'MÉDIA' | 'BAIXA'>;
   };
   obligations: ContractObligation[];
   clauses: Array<{
@@ -309,6 +321,80 @@ function parseBrazilianDate(value?: string) {
   return `${year}-${month}-${day}`;
 }
 
+function extractLabeledValue(text: string, labels: RegExp[], max = 500) {
+  for (const label of labels) {
+    const match = label.exec(text);
+    if (!match || match.index === undefined) continue;
+    const sample = text.slice(match.index, match.index + max);
+    const value = sample.match(/(?:^|[:\\-]\\s*)([^;\\n]{3,220})/);
+    if (value?.[1]) return cleanSnippet(value[1], 220);
+  }
+  return undefined;
+}
+
+function extractContractParties(text: string) {
+  const head = text.slice(0, 18000);
+  const agency = firstMatch(head, [
+    /(?:CONTRATANTE|órgão\\s+contratante)\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
+    /(?:Departamento Estadual de Estradas de Rodagem e Transportes|DER\\s*\\/\\s*RO)/i,
+  ]);
+  const contractor = firstMatch(head, [
+    /(?:CONTRATADA|CONTRATADO|empresa\\s+contratada)\\s*[:\\-]?\\s*([^\\n]{3,180})/i,
+    /(?:MM\\s+SERVIÇOS\\s+ESPECIALIZADOS\\s+LTDA\\.?)/i,
+  ]);
+  const cnpjMatches = [...head.matchAll(/(?:CNPJ\\s*(?:n[º°.]?\\s*)?[:\\-]?\\s*)?(\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2})/gi)];
+  const contractorCnpj = cnpjMatches.find(match => {
+    const before = head.slice(Math.max(0, (match.index ?? 0) - 180), match.index);
+    return /contratada|contratado|empresa/i.test(before);
+  })?.[1];
+  return {
+    contractingAgency: agency?.replace(/^.*?(Departamento Estadual de Estradas de Rodagem e Transportes|DER\\s*\\/\\s*RO)/i, '$1').trim(),
+    contractor: contractor?.trim(),
+    contractorCnpj,
+  };
+}
+
+function extractContractObject(text: string) {
+  const head = text.slice(0, 22000);
+  const patterns = [
+    /(?:CLÁUSULA\\s+PRIMEIRA|CLÁUSULA\\s+1ª|DO\\s+OBJETO)[\\s\\S]{0,180}?objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,900}?)(?=\\s*(?:CLÁUSULA\\s+(?:SEGUNDA|2ª)|\\b2\\s*\\.|\\b1\\.2\\b))/i,
+    /objeto(?:\\s+do\\s+contrato)?\\s*[:\\-]\\s*([\\s\\S]{30,700}?)(?=\\s*(?:CLÁUSULA|\\b1\\.2\\b|\\b2\\.))/i,
+  ];
+  return firstMatch(head, patterns)?.replace(/\\s+/g, ' ').trim();
+}
+
+function extractDuration(text: string, kind: 'validity' | 'execution') {
+  const head = text.slice(0, 30000);
+  const patterns = kind === 'execution'
+    ? [
+        /(?:prazo\\s+de\\s+execução|execução\\s+dos\\s+serviços)[\\s\\S]{0,180}?(\\d{1,4})\\s*\\(?(?:\w+\\)?\\s*)?dias/i,
+        /executad[oa]s?[\\s\\S]{0,140}?(\\d{1,4})\\s*dias/i,
+      ]
+    : [
+        /(?:prazo\\s+de\\s+vigência|vigência\\s+do\\s+contrato|vigência)[\\s\\S]{0,180}?(\\d{1,4})\\s*\\(?(?:\\w+\\)?\\s*)?dias/i,
+      ];
+  for (const pattern of patterns) {
+    const match = pattern.exec(head);
+    if (match?.[1]) {
+      const context = cleanSnippet(head.slice(Math.max(0, (match.index ?? 0) - 100), (match.index ?? 0) + match[0].length + 180), 360);
+      return { days: Number(match[1]), evidence: context };
+    }
+  }
+  return { days: undefined, evidence: undefined };
+}
+
+function extractProcessReferences(text: string) {
+  const opening = text.slice(0, 14000);
+  const administrativeProcess = firstMatch(opening, [
+    /processo\\s+administrativo\\s*(?:n[º°.]?\\s*)?([0-9.\\/-]+)/i,
+    /processo\\s*(?:n[º°.]?\\s*)?([0-9]{4,}(?:\\.[0-9]+)*\\/[0-9]{4}-[0-9]+)/i,
+  ]);
+  const seiProcess = firstMatch(text, [
+    /(?:SEI|processo\\s+SEI)[^0-9]{0,50}([0-9]{4}\\.[0-9]{6}\\/[0-9]{4}-[0-9]{2})/i,
+  ]);
+  return { administrativeProcess, seiProcess };
+}
+
 function extractOrderServiceDates(text: string) {
   const flat = text.replace(/\s+/g, ' ').trim();
   if (!/ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio/i.test(flat)) return {};
@@ -380,28 +466,46 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
     pageTexts.push(pageText);
   }
 
-  const text = normalize(pageTexts.join('\n'));
-  const number = firstMatch(text, [
-    /Contrato\s*(?:Administrativo\s*)?n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
-    /Contrato\s*n[º°.]?\s*([0-9]+\/[0-9]{4})/i,
+  const text = normalize(pageTexts.join('\\n'));
+  const number = firstMatch(text.slice(0, 16000), [
+    /Contrato\\s*(?:Administrativo\\s*)?n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
+    /Contrato\\s*n[º°.]?\\s*([0-9]+\\/[0-9]{4})/i,
   ]);
-  const process = firstMatch(text, [
-    /Processo(?:\s*Administrativo)?\s*(?:n[º°.]?\s*)?([0-9.\/-]+\/[A-Z]+\/[0-9]{4})/i,
-    /Processo\s*(?:n[º°.]?\s*)?([0-9.\/-]+)/i,
+  const processRefs = extractProcessReferences(text);
+  const parties = extractContractParties(text);
+  const object = extractContractObject(text);
+  const valueText = firstMatch(text.slice(0, 24000), [
+    /valor\\s+(?:global\\s+)?(?:do\\s+presente\\s+contrato|total\\s+do\\s+contrato|do\\s+contrato)[^R$]{0,100}R$\\s*([0-9.]+,[0-9]{2})/i,
+    /valor(?:\\s+total)?(?:\\s+do\\s+contrato)?\\s*(?:é|:)?\\s*R$\\s*([0-9.]+,[0-9]{2})/i,
   ]);
-  const valueText = firstMatch(text, [
-    /valor(?:\s+total)?(?:\s+do\s+contrato)?\s*(?:é|:)?\s*R\$\s*([0-9.]+,[0-9]{2})/i,
-    /R\$\s*([0-9.]+,[0-9]{2})\s*(?:\(.*?\))?\s*[,;]?\s*(?:valor|total)/i,
+  const signedAt = firstMatch(text.slice(0, 26000), [
+    /(?:data\\s+da\\s+assinatura|assinado\\s+em|celebrado\\s+em)[^0-9]{0,60}(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:Porto Velho|Ji-Paraná)[^0-9]{0,80}(\\d{2}\\/\\d{2}\\/\\d{4})/i,
   ]);
-  const signedAt = firstMatch(text, [
-    /(?:assinado|assinatura|celebrado)[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/i,
+  const execution = extractDuration(text, 'execution');
+  const validity = extractDuration(text, 'validity');
+  const guaranteeText = firstMatch(text.slice(0, 30000), [
+    /garantia(?:\\s+contratual)?[\\s\\S]{0,180}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
+    /\\b(\\d{1,2}(?:[.,]\\d+)?)\\s*%[\\s\\S]{0,100}garantia/i,
   ]);
-  const executionText = firstMatch(text, [
-    /(?:prazo de execução|execução)[^\n]{0,80}?(\d{1,4})\s*dias/i,
-  ]);
-  const guaranteeText = firstMatch(text, [
-    /garantia[^\n]{0,100}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-  ]);
+  const value = parseMoney(valueText);
+  const guaranteePercent = guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined;
+  const fieldEvidence: Record<string, string> = {};
+  const fieldConfidence: Record<string, 'ALTA' | 'MÉDIA' | 'BAIXA'> = {};
+  const registerEvidence = (key: string, evidence?: string, confidence: 'ALTA' | 'MÉDIA' | 'BAIXA' = 'ALTA') => {
+    if (evidence) { fieldEvidence[key] = cleanSnippet(evidence, 500); fieldConfidence[key] = confidence; }
+  };
+  registerEvidence('number', number ? extractEvidence(text.slice(0, 16000), ['Contrato']) : undefined);
+  registerEvidence('administrativeProcess', processRefs.administrativeProcess ? extractEvidence(text.slice(0, 14000), ['processo administrativo']) : undefined);
+  registerEvidence('seiProcess', processRefs.seiProcess ? extractEvidence(text, ['SEI']) : undefined);
+  registerEvidence('object', object);
+  registerEvidence('value', valueText ? extractEvidence(text.slice(0, 24000), ['valor do presente contrato', 'valor total do contrato', 'valor do contrato']) : undefined);
+  registerEvidence('signedAt', signedAt ? extractEvidence(text.slice(0, 26000), ['data da assinatura', 'assinado em', 'celebrado em']) : undefined);
+  registerEvidence('execution', execution.evidence);
+  registerEvidence('validity', validity.evidence);
+  registerEvidence('guarantee', guaranteeText ? extractEvidence(text.slice(0, 30000), ['garantia contratual', 'garantia']) : undefined);
+  registerEvidence('contractor', parties.contractor);
+  registerEvidence('contractingAgency', parties.contractingAgency);
 
   const obligations = detectObligations(text);
   const orderServiceDates = extractOrderServiceDates(text);
