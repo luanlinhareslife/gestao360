@@ -374,7 +374,7 @@ function extractContractObject(text: string) {
 
 function parsePortugueseDate(text: string) {
   const months: Record<string, string> = { janeiro:'01', fevereiro:'02', março:'03', marco:'03', abril:'04', maio:'05', junho:'06', julho:'07', agosto:'08', setembro:'09', outubro:'10', novembro:'11', dezembro:'12' };
-  const match = text.match(/(\\d{1,2})\\s+de\\s+([a-zçã]+)\\s+(?:de\\s+)?(\\d{4})/i);
+  const match = text.match(/(\d{1,2})\s+de\s+([a-zçã]+)\s+(?:de\s+)?(\d{4})/i);
   if (!match) return undefined;
   const month = months[match[2].toLocaleLowerCase('pt-BR')];
   if (!month) return undefined;
@@ -508,25 +508,25 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const validityEndText = firstMatch(text, [
-    /(?:t[eê]rmino|encerramento)\\s+(?:da\\s+vig[eê]ncia\\s+)?(?:em|no\\s+dia)\\s+(\\d{1,2}\\s+de\\s+[a-zçã]+\\s+de\\s+\\d{4})/i,
-    /vig[eê]ncia[\\s\\S]{0,220}?at[eé]\\s+(\\d{1,2}\\s+de\\s+[a-zçã]+\\s+de\\s+\\d{4})/i,
+    /(?:t[eê]rmino|encerramento)\s+(?:da\s+vig[eê]ncia\s+)?(?:em|no\s+dia)\s+(\d{1,2}\s+de\s+[a-zçã]+\s+de\s+\d{4})/i,
+    /vig[eê]ncia[\s\S]{0,220}?at[eé]\s+(\d{1,2}\s+de\s+[a-zçã]+\s+de\s+\d{4})/i,
   ]);
   const validityEndDate = parsePortugueseDate(validityEndText ?? '');
-  const guaranteeHeading = [...text.matchAll(/CLÁUSULA\\s+[^\\n]{0,100}GARANTIA[^\\n]*/gi)][0];
+  const guaranteeHeading = [...text.matchAll(/CLÁUSULA\s+[^\n]{0,100}GARANTIA[^\n]*/gi)][0];
   const guaranteeStart = guaranteeHeading?.index ?? -1;
   const nextClauseAfterGuarantee = guaranteeStart >= 0
-    ? text.slice(guaranteeStart + 1).search(/CLÁUSULA\\s+/i)
+    ? text.slice(guaranteeStart + 1).search(/CLÁUSULA\s+/i)
     : -1;
   const guaranteeSection = guaranteeStart >= 0
     ? text.slice(guaranteeStart, nextClauseAfterGuarantee >= 0 ? guaranteeStart + 1 + nextClauseAfterGuarantee : guaranteeStart + 9000)
     : '';
   const guaranteePatterns = [
-    /garantias?\\s+contratuais?[\\s\\S]{0,500}?será\\s+de\\s+(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
-    /garantia(?:\\s+contratual)?[\\s\\S]{0,500}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i,
-    /\\b(\\d{1,2}(?:[.,]\\d+)?)\\s*%[\\s\\S]{0,80}garantia/i,
+    /garantias?\s+contratuais?[\s\S]{0,500}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantia(?:\s+contratual)?[\s\S]{0,500}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,80}garantia/i,
   ];
   const guaranteeText = firstMatch(guaranteeSection, guaranteePatterns)
-    ?? firstMatch(text, [/garantia\\s+contratual[^.\\n]{0,180}?(\\d{1,2}(?:[.,]\\d+)?)\\s*%/i]);
+    ?? firstMatch(text, [/garantia\s+contratual[^.\n]{0,180}?(\d{1,2}(?:[.,]\d+)?)\s*%/i]);
   const value = parseMoney(valueText);
   const guaranteePercent = guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined;
   const fieldEvidence: Record<string, string> = {};
