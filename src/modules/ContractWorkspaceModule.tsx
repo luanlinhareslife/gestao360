@@ -301,7 +301,8 @@ export default function ContractWorkspaceModule() {
 
   const saveNewContract = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const value = Number(draft.value.replace(/\\./g, '').replace(',', '.'));
+    const normalizedValue = draft.value.trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+    const value = Number(normalizedValue);
     const executionDays = Number(draft.executionDays);
     const guaranteePercent = Number(draft.guaranteePercent || 0);
     if (!draft.number.trim() || !draft.agency.trim() || !draft.contractor.trim() || !draft.object.trim()) {
