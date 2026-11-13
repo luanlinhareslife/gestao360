@@ -297,7 +297,7 @@ function splitClauses(text: string) {
 
 function parseBrazilianDate(value?: string) {
   if (!value) return undefined;
-  const match = value.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);
+  const match = value.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!match) return undefined;
   const [, day, month, year] = match;
   const date = new Date(Number(year), Number(month) - 1, Number(day));
@@ -307,16 +307,16 @@ function parseBrazilianDate(value?: string) {
 
 function extractOrderServiceDates(text: string) {
   const lower = text.toLocaleLowerCase('pt-BR');
-  if (!/(ordem\\s+de\\s+servi[cç]o|ordem\\s+de\\s+in[ií]cio)/i.test(lower)) return {};
+  if (!/(ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio)/i.test(lower)) return {};
   const signedText = firstMatch(text, [
-    /(?:ordem\\s+de\\s+servi[cç]o|ordem\\s+de\\s+in[ií]cio)[^\\n]{0,180}?(?:assinada?|assinatura|emitida?)[^\\n]{0,80}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
-    /(?:assinada?|assinatura|data da emiss[aã]o)[^\\n]{0,100}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:ordem\s+de\s+servi[cç]o|ordem\s+de\s+in[ií]cio)[^\n]{0,180}?(?:assinada?|assinatura|emitida?)[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/i,
+    /(?:assinada?|assinatura|data da emiss[aã]o)[^\n]{0,100}?(\d{2}\/\d{2}\/\d{4})/i,
   ]);
   const explicitStart = firstMatch(text, [
-    /(?:in[ií]cio|iniciar|iniciados?|iniciadas?)(?:\\s+dos\\s+servi[cç]os?)?[^\\n]{0,100}?(?:em|no dia|a partir de|para o dia)\\s*(\\d{2}\\/\\d{2}\\/\\d{4})/i,
-    /(?:data prevista para o in[ií]cio|data de in[ií]cio dos servi[cç]os?)[^\\n]{0,50}?(\\d{2}\\/\\d{2}\\/\\d{4})/i,
+    /(?:in[ií]cio|iniciar|iniciados?|iniciadas?)(?:\s+dos\s+servi[cç]os?)?[^\n]{0,100}?(?:em|no dia|a partir de|para o dia)\s*(\d{2}\/\d{2}\/\d{4})/i,
+    /(?:data prevista para o in[ií]cio|data de in[ií]cio dos servi[cç]os?)[^\n]{0,50}?(\d{2}\/\d{2}\/\d{4})/i,
   ]);
-  const relativeDays = text.match(/(?:iniciar|in[ií]cio dos servi[cç]os?|iniciados?)[^\\n]{0,130}?(?:em at[eé]|no prazo de|em)\\s*(\\d{1,3})\\s*dias?\\s*(?:corridos?)?\\s*(?:da|ap[oó]s|contados? da)\\s*(?:assinatura|emiss[aã]o|recebimento)\\s*(?:da\\s+)?(?:ordem\\s+de\\s+servi[cç]o|OS)?/i);
+  const relativeDays = text.match(/(?:iniciar|in[ií]cio dos servi[cç]os?|iniciados?)[^\n]{0,130}?(?:em at[eé]|no prazo de|em)\s*(\d{1,3})\s*dias?\s*(?:corridos?)?\s*(?:da|ap[oó]s|contados? da)\s*(?:assinatura|emiss[aã]o|recebimento)\s*(?:da\s+)?(?:ordem\s+de\s+servi[cç]o|OS)?/i);
   const signedAt = parseBrazilianDate(signedText);
   const directStart = parseBrazilianDate(explicitStart);
   let serviceStartDate = directStart;
