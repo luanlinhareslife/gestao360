@@ -112,6 +112,7 @@ function diaryUrlForContract(contract: Contract) {
   url.searchParams.set('contractor', contract.contractor);
   url.searchParams.set('agency', contract.agency);
   url.searchParams.set('object', contract.object);
+  url.searchParams.set('embed', '1');
   return url.toString();
 }
 
