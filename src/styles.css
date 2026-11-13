@@ -389,3 +389,10 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .contract-document-storage-note{margin-top:12px}
 @media(max-width:1000px){.contract-document-types{grid-template-columns:repeat(2,minmax(0,1fr))}.contract-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.contract-documents-heading{align-items:stretch;flex-direction:column}.contract-document-upload{width:100%;min-height:38px}.contract-document-row{flex-wrap:wrap}.contract-document-main{min-width:calc(100% - 50px)}.contract-document-status{margin-left:44px}}
+
+
+.contract-analysis-grid .contract-os-start-date{grid-column:span 2;border-color:#f1d28a;background:#fff8e8}
+.contract-analysis-grid .contract-os-start-date small{font-weight:900;letter-spacing:.7px;color:#9a6500}
+.contract-analysis-grid .contract-os-start-date strong{font-size:17px;color:#173957}
+.contract-analysis-grid .contract-os-start-date em{font-size:8px;line-height:1.4;color:#80642c;font-style:normal}
+@media(max-width:700px){.contract-analysis-grid .contract-os-start-date{grid-column:1/-1}}
