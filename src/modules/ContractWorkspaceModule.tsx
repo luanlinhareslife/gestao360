@@ -13,6 +13,37 @@ type Stage = {
   actualValue: number;
 };
 type ScheduleByContract = Record<string, Stage[]>;
+type UploadedSchedule = { contractId: string; name: string; size: number; type: string; savedAt: string };
+const FILE_DB = 'gestao360-contract-files';
+const FILE_STORE = 'schedules';
+function openFileDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(FILE_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore(FILE_STORE, { keyPath: 'contractId' });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+async function saveScheduleFile(contractId: string, file: File) {
+  const db = await openFileDb();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(FILE_STORE, 'readwrite');
+    transaction.objectStore(FILE_STORE).put({ contractId, name: file.name, size: file.size, type: file.type, savedAt: new Date().toISOString(), file });
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+async function readScheduleFile(contractId: string): Promise<{ file: File; meta: UploadedSchedule } | null> {
+  const db = await openFileDb();
+  const record = await new Promise<any>((resolve, reject) => {
+    const request = db.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).get(contractId);
+    request.onsuccess = () => resolve(request.result ?? null);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return record ? { file: record.file as File, meta: { contractId, name: record.name, size: record.size, type: record.type, savedAt: record.savedAt } } : null;
+}
 
 const tabs: Array<{ name: WorkspaceTab; icon: string }> = [
   { name: 'Resumo', icon: '▦' },
@@ -39,6 +70,40 @@ export default function ContractWorkspaceModule() {
   const [weight, setWeight] = useState('0');
   const [plannedValue, setPlannedValue] = useState('0');
   const [formError, setFormError] = useState('');
+  const [uploadedSchedule, setUploadedSchedule] = useState<UploadedSchedule | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedId) { setUploadedSchedule(null); return; }
+    readScheduleFile(selectedId).then(result => setUploadedSchedule(result?.meta ?? null)).catch(() => setUploadError('Não foi possível consultar o arquivo salvo neste dispositivo.'));
+  }, [selectedId]);
+
+  const handleScheduleUpload = async (file?: File) => {
+    if (!file || !selected) return;
+    setUploadError('');
+    const allowed = /\\.(pdf|xlsx?|xls)$/i.test(file.name);
+    if (!allowed) { setUploadError('Envie um arquivo PDF, XLS ou XLSX.'); return; }
+    if (file.size > 30 * 1024 * 1024) { setUploadError('O arquivo deve ter até 30 MB.'); return; }
+    setUploading(true);
+    try {
+      await saveScheduleFile(selected.id, file);
+      const result = await readScheduleFile(selected.id);
+      setUploadedSchedule(result?.meta ?? null);
+    } catch {
+      setUploadError('Não foi possível guardar o arquivo neste dispositivo. Verifique o espaço disponível.');
+    } finally { setUploading(false); }
+  };
+
+  const downloadSchedule = async () => {
+    if (!selected) return;
+    const result = await readScheduleFile(selected.id);
+    if (!result) return;
+    const url = URL.createObjectURL(result.file);
+    const link = document.createElement('a');
+    link.href = url; link.download = result.file.name; link.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(schedule));
@@ -158,6 +223,13 @@ export default function ContractWorkspaceModule() {
                 <div><small>Valor previsto distribuído</small><strong>{money(totals.planned)}</strong></div>
                 <div><small>Saldo a distribuir</small><strong>{money(Math.max(0, selected.value - totals.planned))}</strong></div>
               </div>
+              <div className="schedule-upload-panel">
+                <div><strong>Já possui o cronograma pronto?</strong><p>Envie o PDF ou a planilha aprovada sem precisar cadastrar cada etapa manualmente. O arquivo ficará anexado a este contrato neste dispositivo.</p></div>
+                <label className="primary-button schedule-upload-button">{uploading ? 'Salvando arquivo...' : '↑ Enviar cronograma pronto'}<input type="file" accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => handleScheduleUpload(event.target.files?.[0])} /></label>
+                {uploadedSchedule && <div className="schedule-uploaded-file"><span>▤</span><div><strong>{uploadedSchedule.name}</strong><small>{(uploadedSchedule.size / 1024 / 1024).toLocaleString('pt-BR',{maximumFractionDigits:2})} MB · enviado em {new Date(uploadedSchedule.savedAt).toLocaleString('pt-BR')}</small></div><button type="button" onClick={downloadSchedule}>Baixar arquivo</button></div>}
+                {uploadError && <p className="schedule-form-error">{uploadError}</p>}
+              </div>
+              <div className="schedule-manual-heading"><strong>Ou monte o cronograma por etapas</strong><span>Preenchimento opcional</span></div>
               <form className="schedule-stage-form" onSubmit={addStage}>
                 <label>Etapa / serviço<input value={stageName} onChange={event => setStageName(event.target.value)} placeholder="Ex.: Fundação e infraestrutura" /></label>
                 <label>Início previsto<input type="date" value={startDate} onChange={event => setStartDate(event.target.value)} /></label>
