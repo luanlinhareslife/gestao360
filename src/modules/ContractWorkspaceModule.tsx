@@ -257,18 +257,35 @@ export default function ContractWorkspaceModule() {
       const missing: string[] = [];
       if (!detected.number) missing.push('número');
       if (!detected.process) missing.push('processo');
+      if (!detected.contractingAgency) missing.push('contratante');
+      if (!detected.contractor) missing.push('contratada');
+      if (!detected.contractorCnpj) missing.push('CNPJ da contratada');
       if (detected.value === undefined) missing.push('valor');
       if (!signedAt) missing.push('data de assinatura');
       if (!detected.executionDays) missing.push('prazo de execução');
       if (detected.guaranteePercent === undefined) missing.push('garantia');
+      if (!detected.validityDays) missing.push('vigência');
+      if (!detected.object) missing.push('objeto');
+
       setDraft(current => ({
         ...current,
         number: detected.number ?? current.number,
-        process: detected.process ?? current.process,
-        value: detected.value !== undefined ? detected.value.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : current.value,
+        process: detected.administrativeProcess ?? detected.process ?? current.process,
+        agency: detected.contractingAgency ?? current.agency,
+        contractor: detected.contractor ?? current.contractor,
+        cnpj: detected.contractorCnpj ?? current.cnpj,
+        object: detected.object ?? current.object,
+        value: detected.value !== undefined
+          ? detected.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : current.value,
         signedAt: signedAt || current.signedAt,
         executionDays: detected.executionDays ? String(detected.executionDays) : current.executionDays,
-        guaranteePercent: detected.guaranteePercent !== undefined ? String(detected.guaranteePercent) : current.guaranteePercent,
+        guaranteePercent: detected.guaranteePercent !== undefined
+          ? String(detected.guaranteePercent)
+          : current.guaranteePercent,
+        validity: detected.validityDays
+          ? `${detected.validityDays} dias${detected.validityRule ? ' · ' + detected.validityRule : ''}`
+          : current.validity,
       }));
       setNewContractReadMessage(
         missing.length
