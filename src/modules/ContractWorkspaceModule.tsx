@@ -107,6 +107,10 @@ const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFra
 
 function diaryUrlForContract(contract: Contract) {
   const url = new URL('https://diario-360-9ux61w.v2.appdeploy.ai/');
+  // Stable identity: the diary app must use this ID as the primary contract/obra link.
+  // Text fields remain as human-readable metadata and migration fallback only.
+  url.searchParams.set('contractId', contract.id);
+  url.searchParams.set('companyCnpj', contract.cnpj.replace(/\\D/g, ''));
   url.searchParams.set('contract', contract.number);
   url.searchParams.set('process', contract.process);
   url.searchParams.set('contractor', contract.contractor);
