@@ -365,12 +365,19 @@ function extractContractParties(text: string) {
 }
 
 function extractContractObject(text: string) {
-  const head = text.slice(0, 22000);
-  const patterns = [
-    /CLÁUSULA\s+PRIMEIRA[\s\S]{0,700}?PARÁGRAFO\s+PRIMEIRO\s*[.:\-–—]?\s*([\s\S]{30,1200}?)(?=\s*PARÁGRAFO\s+SEGUNDO)/i,
-    /objeto(?:\s+do\s+contrato)?\s*[:\-]\s*([\s\S]{30,700}?)(?=\s*(?:CLÁUSULA|\b1\.2\b|\b2\.))/i,
-  ];
-  return firstMatch(head, patterns)?.replace(/\s+/g, ' ').trim();
+  const head = text.slice(0, 26000);
+  const clauseStart = head.search(/CLÁUSULA\s+PRIMEIRA\b/i);
+  const clauseEndMatch = clauseStart >= 0
+    ? head.slice(clauseStart + 1).search(/CLÁUSULA\s+SEGUNDA\b/i)
+    : -1;
+  const firstClause = clauseStart >= 0
+    ? head.slice(clauseStart, clauseEndMatch >= 0 ? clauseStart + 1 + clauseEndMatch : clauseStart + 5000)
+    : head.slice(0, 12000);
+  const paragraph = firstMatch(firstClause, [
+    /PARÁGRAFO\s+PRIMEIRO\s*[.:\-–—]?\s*([\s\S]{40,3000}?)(?=\s*PARÁGRAFO\s+SEGUNDO|\s*CLÁUSULA\s+SEGUNDA|$)/i,
+    /(?:tem\s+como\s+objeto|constitui\s+objeto)\s+([\s\S]{40,2500}?)(?=\s*PARÁGRAFO\s+SEGUNDO|\s*CLÁUSULA\s+SEGUNDA|$)/i,
+  ]);
+  return paragraph?.replace(/\s+/g, ' ').trim();
 }
 
 function parsePortugueseDate(text: string) {
@@ -510,8 +517,8 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
   const validityEndText = firstMatch(text, [
-    /(?:t[eê]rmino|encerramento)\s+(?:da\s+vig[eê]ncia\s+)?(?:em|no\s+dia)\s+(\d{1,2}\s+de\s+[a-zçã]+\s+de\s+\d{4})/i,
-    /vig[eê]ncia[\s\S]{0,220}?at[eé]\s+(\d{1,2}\s+de\s+[a-zçã]+\s+de\s+\d{4})/i,
+    /(?:t[eê]rmino|encerramento)[\s\S]{0,180}?(\d{1,2}\s+de\s+[a-zçã]+\s+(?:de\s+)?\d{4})/i,
+    /vig[eê]ncia[\s\S]{0,300}?(?:at[eé]|em|t[eê]rmino em)\s+(\d{1,2}\s+de\s+[a-zçã]+\s+(?:de\s+)?\d{4})/i,
   ]);
   const validityEndDate = parsePortugueseDate(validityEndText ?? '');
   const guaranteeHeading = [...text.matchAll(/CLÁUSULA\s+[^\n]{0,100}GARANTIA[^\n]*/gi)][0];
