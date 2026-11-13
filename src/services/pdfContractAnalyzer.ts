@@ -55,7 +55,8 @@ export type ExtractedContract = {
     seiProcess?: string;
     contractingAgency?: string;
     contractor?: string;
-    contractorCnpj?: string;\n    agencyCnpj?: string;
+    contractorCnpj?: string;
+    agencyCnpj?: string;
     object?: string;
     validityRule?: string;
     executionRule?: string;
@@ -530,7 +531,8 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       seiProcess: processRefs.seiProcess,
       contractingAgency: parties.contractingAgency,
       contractor: parties.contractor,
-      contractorCnpj: parties.contractorCnpj,\n      agencyCnpj: parties.agencyCnpj,
+      contractorCnpj: parties.contractorCnpj,
+      agencyCnpj: parties.agencyCnpj,
       object,
       value,
       signedAt,
