@@ -119,6 +119,9 @@ export default function ContractWorkspaceModule() {
   const [showNewContract, setShowNewContract] = useState(false);
   const [draft, setDraft] = useState<ContractDraft>(emptyContractDraft);
   const [contractError, setContractError] = useState('');
+  const [readingNewContract, setReadingNewContract] = useState(false);
+  const [newContractFileName, setNewContractFileName] = useState('');
+  const [newContractReadMessage, setNewContractReadMessage] = useState('');
   const [selectedId, setSelectedId] = useState(contractList[0]?.id ?? '');
   const [tab, setTab] = useState<WorkspaceTab>('Resumo');
   const [schedule, setSchedule] = useState<ScheduleByContract>(() => {
@@ -236,6 +239,49 @@ export default function ContractWorkspaceModule() {
     localStorage.setItem(CONTRACTS_KEY, JSON.stringify(additions));
   }, [contractList]);
 
+  const handleNewContractPdf = async (file?: File) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setNewContractReadMessage('Envie um contrato em PDF.');
+      return;
+    }
+    setReadingNewContract(true);
+    setNewContractFileName(file.name);
+    setNewContractReadMessage('Lendo o PDF e identificando os dados do contrato...');
+    try {
+      const result = await extractContractFromPdf(file);
+      const detected = result.detected;
+      const signedAt = detected.signedAt
+        ? detected.signedAt
+        : '';
+      const missing: string[] = [];
+      if (!detected.number) missing.push('número');
+      if (!detected.process) missing.push('processo');
+      if (detected.value === undefined) missing.push('valor');
+      if (!signedAt) missing.push('data de assinatura');
+      if (!detected.executionDays) missing.push('prazo de execução');
+      if (detected.guaranteePercent === undefined) missing.push('garantia');
+      setDraft(current => ({
+        ...current,
+        number: detected.number ?? current.number,
+        process: detected.process ?? current.process,
+        value: detected.value !== undefined ? detected.value.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : current.value,
+        signedAt: signedAt || current.signedAt,
+        executionDays: detected.executionDays ? String(detected.executionDays) : current.executionDays,
+        guaranteePercent: detected.guaranteePercent !== undefined ? String(detected.guaranteePercent) : current.guaranteePercent,
+      }));
+      setNewContractReadMessage(
+        missing.length
+          ? `Leitura concluída. Confira os campos preenchidos; não consegui identificar com segurança: ${missing.join(', ')}. Complete manualmente os campos restantes.`
+          : 'Leitura concluída. Confira todos os campos antes de salvar. Os dados ainda não foram cadastrados.'
+      );
+    } catch (error) {
+      setNewContractReadMessage(error instanceof Error ? error.message : 'Não foi possível ler o PDF. Você pode preencher os campos manualmente.');
+    } finally {
+      setReadingNewContract(false);
+    }
+  };
+
   const saveNewContract = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const value = Number(draft.value.replace(/\\./g, '').replace(',', '.'));
@@ -331,6 +377,12 @@ export default function ContractWorkspaceModule() {
       {showNewContract && <div className="contract-new-overlay" role="dialog" aria-modal="true" aria-label="Novo contrato">
         <form className="contract-new-form" onSubmit={saveNewContract}>
           <div className="contract-new-heading"><div><span className="eyebrow">GESTÃO 360 • CADASTRO</span><h2>Novo contrato</h2><p>Cadastre os dados oficiais para criar a pasta contratual.</p></div><button type="button" className="close-button" onClick={() => setShowNewContract(false)}>×</button></div>
+          <div className="contract-pdf-import">
+            <div><strong>Preencher automaticamente pelo contrato</strong><p>Envie o PDF para tentar identificar número, processo, valor, data de assinatura, prazo e garantia. Você poderá revisar e corrigir tudo antes de salvar.</p></div>
+            <label className="primary-button contract-pdf-import-button">{readingNewContract ? 'Lendo contrato...' : '↑ Enviar contrato em PDF'}<input type="file" accept="application/pdf,.pdf" disabled={readingNewContract} onChange={event => { void handleNewContractPdf(event.target.files?.[0]); event.currentTarget.value = ''; }} /></label>
+            {newContractFileName && <small className="contract-pdf-filename">Arquivo: {newContractFileName}</small>}
+            {newContractReadMessage && <p className="contract-pdf-read-message" role="status">{newContractReadMessage}</p>}
+          </div>
           <div className="contract-new-grid">
             <label>Número do contrato *<input value={draft.number} onChange={e => setDraft(v => ({...v, number:e.target.value}))} placeholder="Ex.: 56/2026" /></label>
             <label>Número do processo<input value={draft.process} onChange={e => setDraft(v => ({...v, process:e.target.value}))} placeholder="Ex.: 1-1143/2026" /></label>
