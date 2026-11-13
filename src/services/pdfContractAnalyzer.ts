@@ -347,9 +347,7 @@ function extractContractParties(text: string) {
   const contractorIndex = contractor ? head.toLocaleLowerCase('pt-BR').indexOf(contractor.toLocaleLowerCase('pt-BR')) : -1;
   const cnpjMatches = [...head.matchAll(/CNPJ(?:\/MF)?[^0-9]{0,35}(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/gi)];
   const agencyCnpj = cnpjMatches[0]?.[1];
-  const contractorCnpj = contractorIndex >= 0
-    ? cnpjMatches.find(match => (match.index ?? -1) > contractorIndex)?.[1]
-    : cnpjMatches[1]?.[1];
+  const contractorCnpj = cnpjMatches[cnpjMatches.length - 1]?.[1];
   return {
     contractingAgency: agency?.trim(),
     contractor: contractor?.trim(),
@@ -371,11 +369,11 @@ function extractDuration(text: string, kind: 'validity' | 'execution') {
   const head = text.slice(0, 30000);
   const patterns = kind === 'execution'
     ? [
-        /(?:prazo\s+(?:previsto\s+para\s+)?execução|execução\s+total\s+dos\s+serviços)[\s\S]{0,240}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
+        /(?:prazo\s+(?:previsto\s+para\s+)?execução|execução\s+total\s+dos\s+serviços)[\s\S]{0,260}?(\d{1,4})\s*(?:\([^)]{0,80}\)\s*)?dias/i,
         /executad[oa]s?[\s\S]{0,140}?(\d{1,4})\s*dias/i,
       ]
     : [
-        /(?:prazo\s+de\s+vigência|vigência\s+do\s+contrato|vigência)[\s\S]{0,180}?(\d{1,4})\s*\(?(?:\w+\)?\s*)?dias/i,
+        /(?:prazo\s+de\s+vigência|vigência\s+do\s+contrato|vigência)[\s\S]{0,220}?(\d{1,4})\s*(?:\([^)]{0,80}\)\s*)?dias/i,
       ];
   for (const pattern of patterns) {
     const match = pattern.exec(head);
@@ -493,10 +491,12 @@ export async function extractContractFromPdf(file: File): Promise<ExtractedContr
       ]);
   const execution = extractDuration(text, 'execution');
   const validity = extractDuration(text, 'validity');
-  const guaranteeText = firstMatch(text.slice(0, 30000), [
-    /garantias?\s+contratuais?[\s\S]{0,700}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-    /garantia(?:\s+contratual)?[\s\S]{0,700}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
-    /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,100}garantia/i,
+  const guaranteeStart = text.toLocaleLowerCase('pt-BR').indexOf('cláusula décima nona');
+  const guaranteeSection = guaranteeStart >= 0 ? text.slice(guaranteeStart, guaranteeStart + 12000) : text;
+  const guaranteeText = firstMatch(guaranteeSection, [
+    /garantias?\s+contratuais?[\s\S]{0,900}?será\s+de\s+(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /garantia(?:\s+contratual)?[\s\S]{0,900}?(\d{1,2}(?:[.,]\d+)?)\s*%/i,
+    /\b(\d{1,2}(?:[.,]\d+)?)\s*%[\s\S]{0,120}garantia/i,
   ]);
   const value = parseMoney(valueText);
   const guaranteePercent = guaranteeText ? Number(guaranteeText.replace(',', '.')) : undefined;
