@@ -470,3 +470,36 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .native-diary-card-actions .danger{color:#a32626;border-color:#efcccc}
 @media(max-width:900px){.native-diary-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.native-diary-card{grid-template-columns:42px minmax(0,1fr)}.native-diary-card-actions{grid-column:2;justify-content:flex-start}}
 @media(max-width:600px){.native-diary-header,.native-diary-photo-tools,.native-diary-gps{align-items:stretch;flex-direction:column}.native-diary-fields{grid-template-columns:1fr}.native-diary-wide{grid-column:auto}.native-diary-card-main>div{flex-direction:column}.native-diary-card-actions{grid-column:1/-1}}
+
+
+/* Refinamento visual do Diário nativo — identidade Gestão 360 */
+.native-diary{gap:18px}
+.native-diary-header{padding:17px 19px;background:linear-gradient(115deg,#082f50 0%,#104f7b 68%,#176ba3 100%);border-radius:12px;color:#fff;box-shadow:0 5px 16px rgba(8,47,80,.12)}
+.native-diary-header .eyebrow{color:#b9dafa;letter-spacing:1.5px}
+.native-diary-header h3{color:#fff;font-size:21px;letter-spacing:-.35px}
+.native-diary-header p{color:#e0edf8}
+.native-diary-header small{color:#c4d8e9}
+.native-diary-badge{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff}
+.native-diary-notice{border-color:#c9dced;background:#f0f6fc;box-shadow:inset 3px 0 #1470d2}
+.native-diary-form{padding:20px;border-color:#d6e1eb;box-shadow:0 3px 12px rgba(15,48,77,.045)}
+.native-diary-form-title{padding-bottom:13px;border-bottom:1px solid #e5edf4}
+.native-diary-form-title .eyebrow,.native-diary-list-heading .eyebrow{color:#1470d2;letter-spacing:1.5px}
+.native-diary-form-title h4,.native-diary-list-heading h4{color:#123452;font-size:17px}
+.native-diary-fields label{color:#244c6d;font-size:11px}
+.native-diary-fields input,.native-diary-fields select,.native-diary-fields textarea{border-color:#cbd9e6;border-radius:7px;min-height:42px;transition:border-color .15s,box-shadow .15s}
+.native-diary-fields input:focus,.native-diary-fields select:focus,.native-diary-fields textarea:focus{border-color:#1470d2;box-shadow:0 0 0 3px rgba(20,112,210,.10);outline:0}
+.native-diary-fields textarea{line-height:1.55;resize:vertical}
+.native-diary-photo-tools,.native-diary-gps{border-color:#d8e4ee;background:#f4f8fc}
+.native-diary-photo-tools .primary-button,.native-diary-actions .primary-button{min-height:42px;padding:11px 20px;border-radius:8px;background:#0d4d78;box-shadow:0 3px 8px rgba(8,47,80,.12)}
+.native-diary-photo-tools .primary-button:hover,.native-diary-actions .primary-button:hover{background:#12659b}
+.native-diary-gps .outline-button,.native-diary-form-title .outline-button,.native-diary-list-heading .outline-button{border-color:#b9cddd;color:#174e78;background:#fff}
+.native-diary-list-heading{padding:4px 2px 11px;border-bottom:1px solid #dfe8f0}
+.native-diary-card{border-color:#d8e3ec;box-shadow:0 2px 7px rgba(12,45,73,.035);transition:box-shadow .15s,border-color .15s}
+.native-diary-card:hover{border-color:#b6cde0;box-shadow:0 4px 13px rgba(12,45,73,.07)}
+.native-diary-number{background:#eaf3fb;color:#0d4d78;border:1px solid #d6e6f3}
+.native-diary-card-main strong{color:#123452;font-size:13px}
+.native-diary-card-actions button{min-height:34px}
+.native-diary-card-actions button:first-child{background:#f1f7fc;border-color:#cbddeb}
+.native-diary-card-actions .danger{background:#fffafa}
+.native-diary .schedule-empty{border:1px dashed #c8d8e6;border-radius:11px;background:#f8fbfe}
+@media(max-width:700px){.native-diary-header{padding:14px;flex-direction:column}}
