@@ -70,6 +70,7 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
   const [gps,setGps] = useState<{latitude:number;longitude:number}|null>(null);
   const [gpsMessage,setGpsMessage] = useState('');
   const [saving,setSaving] = useState(false);
+  const [selectedIds,setSelectedIds] = useState<string[]>([]);
 
   const reload = async () => {
     setLoading(true);
@@ -79,6 +80,8 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
   };
   useEffect(() => { void reload(); setDraft(emptyDraft()); setPhotos([]); setEditingId(null); }, [contract.id]);
 
+  const allSelected = entries.length > 0 && entries.every(entry => selectedIds.includes(entry.id));
+  const selectedEntries = entries.filter(entry => selectedIds.includes(entry.id));
   const nextNumber = useMemo(() => Math.max(0,...entries.map(item => item.number))+1,[entries]);
   const updateDraft = (field: 'date'|'weather'|'description'|'occurrence'|'fiscal'|'observations', value: string) => setDraft(current => ({...current,[field]:value}));
 
@@ -129,7 +132,7 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
         photos, observations:draft.observations, team:draft.team, ppe:draft.ppe, createdAt:existing?.createdAt ?? now, updatedAt:now,
       };
       await putEntry(entry);
-      await reload(); resetForm();
+      await reload(); resetForm(); setSelectedIds([]);
     } catch { setError('Falha ao salvar o diário. Verifique o espaço disponível no dispositivo.'); }
     finally { setSaving(false); }
   };
@@ -139,50 +142,60 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
     catch { setError('Não foi possível excluir o diário.'); }
   };
   const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char] ?? char));
-  const printEntry = async (entry: DiaryEntry) => {
-    const photoMarkup = entry.photos.map(photo => {
-      const url = URL.createObjectURL(photo.blob);
-      return '<figure><img src="'+url+'" /><figcaption>'+escapeHtml(photo.name)+'</figcaption></figure>';
-    }).join('');
-    const teamMarkup = TEAM_ROLES.map(role => '<tr><td>'+role+'</td><td>'+escapeHtml(entry.team?.[role] ?? '0')+'</td></tr>').join('');
-    const ppeMarkup = PPE_OPTIONS.map(item => '<span class="ppe">'+(entry.ppe?.includes(item) ? '☑' : '☐')+' '+item+'</span>').join('');
-    const [logoAsset, signatureAsset] = await Promise.all([getBrandAsset(contract.cnpj,'logo'),getBrandAsset(contract.cnpj,'signature')]);
-    const [logoUrl, signatureUrl] = await Promise.all([brandAssetDataUrl(logoAsset),brandAssetDataUrl(signatureAsset)]);
+  const printEntries = async (items: DiaryEntry[]) => {
+    if (!items.length) { setError('Selecione ao menos um diário para imprimir.'); return; }
     const popup = window.open('', '_blank', 'width=1000,height=800');
-    if (!popup) { setError('Permita janelas pop-up para imprimir o diário.'); return; }
-    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diário ${entry.number} - Contrato ${escapeHtml(contract.number)}</title><style>
-      @page{size:A4;margin:10mm}
-      *{box-sizing:border-box}body{font:9px Arial,Helvetica,sans-serif;color:#171717;margin:0;line-height:1.35}
-      .masthead{min-height:64px;border:1px solid #777;display:grid;grid-template-columns:130px minmax(0,1fr) 120px;align-items:center;padding:5px 10px;text-align:center;gap:10px;overflow:hidden}
-      .company-mark{font-size:13px;font-weight:900;color:#174a73;text-align:left;min-width:0;overflow:hidden}.company-mark img{display:block;max-width:120px;max-height:48px;object-fit:contain;object-position:left center}.company-mark small{display:block;font-size:7px;color:#333;overflow-wrap:anywhere}
-      .masthead h1{margin:0;font-size:23px;letter-spacing:.8px;color:#123452}.masthead h2{margin:5px 0 0;font-size:11px}
-      .contract-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;border:1px solid #777;padding:8px;margin-top:6px}
-      .contract-grid p{margin:0;font-size:8px;line-height:1.35}.contract-grid strong{font-weight:800}
-      .bar{margin-top:7px;border:1px solid #777;text-align:center;font-weight:800;padding:4px;font-size:9px}
-      table{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;margin:2px 0 0}td{border:1px solid #888;padding:3px 5px;font-size:8px;line-height:1.25;vertical-align:middle}td:first-child{width:78%;overflow-wrap:anywhere}td:last-child{width:22%;text-align:center}
-      .ppe-list{border:1px solid #888;padding:7px;display:flex;gap:10px;flex-wrap:wrap}.ppe{font-size:8px}
-      .weather{border:1px solid #888;margin-top:6px;padding:6px;font-size:8px}
-      .content{border:1px solid #888;min-height:54px;padding:8px;white-space:pre-wrap;font-size:8px}
-      .photos{border:1px solid #888;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:90px}
-      figure{margin:0;border:1px solid #aaa;padding:5px;break-inside:avoid}img{width:100%;max-height:250px;object-fit:contain}figcaption{font-size:7px;margin-top:3px}
-      .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:58px;text-align:center;break-inside:avoid;align-items:start}.signatures div{position:relative;border-top:1px solid #333;padding-top:6px;font-size:8px;min-height:58px}.signatures strong{display:block}.signatures img{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);width:auto;max-width:125px;max-height:34px;object-fit:contain;object-position:center bottom}
-      .foot{margin-top:10px;border-top:1px solid #aaa;padding-top:4px;text-align:right;font-size:7px;color:#555}
-      @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body>
-    <header class="masthead"><div class="company-mark">${logoUrl ? '<img src="'+logoUrl+'" alt="Logotipo da empresa">' : escapeHtml(contract.contractor)}<small>${escapeHtml(contract.cnpj || '')}</small></div><div><h1>DIÁRIO 360</h1><h2>DIÁRIO DE OBRA Nº ${String(entry.number).padStart(2,'0')}</h2></div><div style="font-size:8px">GESTÃO DE OBRAS<br>REGISTRO DIÁRIO</div></header>
-    <div class="contract-grid"><p><strong>CONTRATANTE:</strong> ${escapeHtml(contract.agency)}</p><p><strong>CONTRATADA:</strong> ${escapeHtml(contract.contractor)}</p><p><strong>PROCESSO:</strong> ${escapeHtml(contract.process || 'Não informado')}</p><p><strong>CONTRATO:</strong> ${escapeHtml(contract.number)}</p><p style="grid-column:1/-1"><strong>OBRA:</strong> ${escapeHtml(contract.object)}</p><p style="grid-column:1/-1"><strong>LOCAL DA OBRA:</strong> Linha 207 (com intenção de estadualizar e se tornar a RO-411), km 12,00, trecho BR-364/RO-133, no município de Ji-Paraná.</p></div>
-    <div class="bar">EQUIPE</div><table>${teamMarkup}</table>
-    <div class="bar">EPIs</div><div class="ppe-list">${ppeMarkup}</div>
-    <div class="weather"><strong>TEMPO:</strong> ${escapeHtml(entry.weather)} &nbsp;&nbsp; <strong>DATA:</strong> ${dateLabel(entry.date)}</div>
-    <div class="bar">SERVIÇOS EXECUTADOS</div><div class="content">${escapeHtml(entry.description)}</div>
-    <div class="bar">OCORRÊNCIAS</div><div class="content" style="min-height:48px">${escapeHtml(entry.occurrence || 'Nenhuma ocorrência registrada.')}</div>
-    <div class="bar">OBSERVAÇÕES DA FISCALIZAÇÃO / ENG. FISCAL DA OBRA</div><div class="content" style="min-height:48px">${escapeHtml(entry.observations || entry.fiscal || 'Sem observações.')}</div>
-    <div class="bar">RELATÓRIO FOTOGRÁFICO</div><div class="photos">${photoMarkup || '<div style="padding:28px;text-align:center">Sem fotos.</div>'}</div>
-    <div class="signatures"><div><strong>Engenheiro Fiscal da Obra</strong>ENGENHEIRO FISCAL DA OBRA</div><div>${signatureUrl ? '<img src="'+signatureUrl+'" alt="Assinatura do engenheiro responsável">' : ''}<strong>Engenheiro Responsável</strong>RESPONSÁVEL PELA EMPRESA</div></div>
-    <div class="foot">Contrato ${escapeHtml(contract.number)} · Diário nº ${String(entry.number).padStart(2,'0')} · Emitido em ${new Date().toLocaleString('pt-BR')}</div>
-    <script>window.onload=()=>window.print()<\/script></body></html>`);
-    popup.document.close();
+    if (!popup) { setError('Permita janelas pop-up para imprimir os diários.'); return; }
+    popup.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diários - Contrato '+escapeHtml(contract.number)+'</title></head><body style="font:12px Arial;padding:24px">Preparando diários para impressão...</body></html>');
+    try {
+      const [logoAsset, signatureAsset] = await Promise.all([getBrandAsset(contract.cnpj,'logo'),getBrandAsset(contract.cnpj,'signature')]);
+      const [logoUrl, signatureUrl] = await Promise.all([brandAssetDataUrl(logoAsset),brandAssetDataUrl(signatureAsset)]);
+      const pages = items.map((entry,index) => {
+        const photoMarkup = entry.photos.map(photo => {
+          const url = URL.createObjectURL(photo.blob);
+          return '<figure><img src="'+url+'" /><figcaption>'+escapeHtml(photo.name)+'</figcaption></figure>';
+        }).join('');
+        const teamMarkup = TEAM_ROLES.map(role => '<tr><td>'+role+'</td><td>'+escapeHtml(entry.team?.[role] ?? '0')+'</td></tr>').join('');
+        const ppeMarkup = PPE_OPTIONS.map(item => '<span class="ppe">'+(entry.ppe?.includes(item) ? '☑' : '☐')+' '+item+'</span>').join('');
+        return `<main class="diary-page">
+          <header class="masthead"><div class="company-mark">${logoUrl ? '<img src="'+logoUrl+'" alt="Logotipo da empresa">' : escapeHtml(contract.contractor)}<small>${escapeHtml(contract.cnpj || '')}</small></div><div><h1>DIÁRIO 360</h1><h2>DIÁRIO DE OBRA Nº ${String(entry.number).padStart(2,'0')}</h2></div><div class="brand-caption">GESTÃO DE OBRAS<br>REGISTRO DIÁRIO</div></header>
+          <div class="contract-grid"><p><strong>CONTRATANTE:</strong> ${escapeHtml(contract.agency)}</p><p><strong>CONTRATADA:</strong> ${escapeHtml(contract.contractor)}</p><p><strong>PROCESSO:</strong> ${escapeHtml(contract.process || 'Não informado')}</p><p><strong>CONTRATO:</strong> ${escapeHtml(contract.number)}</p><p class="full"><strong>OBRA:</strong> ${escapeHtml(contract.object)}</p><p class="full"><strong>LOCAL DA OBRA:</strong> Linha 207 (com intenção de estadualizar e se tornar a RO-411), km 12,00, trecho BR-364/RO-133, no município de Ji-Paraná.</p></div>
+          <div class="bar">EQUIPE</div><table class="team-table"><tbody>${teamMarkup}</tbody></table>
+          <div class="bar">EPIs</div><div class="ppe-list">${ppeMarkup}</div>
+          <div class="weather"><strong>TEMPO:</strong> ${escapeHtml(entry.weather)} &nbsp;&nbsp; <strong>DATA:</strong> ${dateLabel(entry.date)}</div>
+          <div class="bar">SERVIÇOS EXECUTADOS</div><div class="content">${escapeHtml(entry.description)}</div>
+          <div class="bar">OCORRÊNCIAS</div><div class="content short">${escapeHtml(entry.occurrence || 'Nenhuma ocorrência registrada.')}</div>
+          <div class="bar">OBSERVAÇÕES DA FISCALIZAÇÃO / ENG. FISCAL DA OBRA</div><div class="content short">${escapeHtml(entry.observations || entry.fiscal || 'Sem observações.')}</div>
+          <div class="bar">RELATÓRIO FOTOGRÁFICO</div><div class="photos">${photoMarkup || '<div class="no-photos">Sem fotos.</div>'}</div>
+          <div class="signatures"><div><strong>Engenheiro Fiscal da Obra</strong>ENGENHEIRO FISCAL DA OBRA</div><div>${signatureUrl ? '<img src="'+signatureUrl+'" alt="Assinatura do engenheiro responsável">' : ''}<strong>Engenheiro Responsável</strong>RESPONSÁVEL PELA EMPRESA</div></div>
+          <div class="foot">Contrato ${escapeHtml(contract.number)} · Diário nº ${String(entry.number).padStart(2,'0')} · Emitido em ${new Date().toLocaleString('pt-BR')}</div>
+        </main>`;
+      }).join('');
+      popup.document.open();
+      popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diários - Contrato ${escapeHtml(contract.number)}</title><style>
+        @page{size:A4;margin:10mm}*{box-sizing:border-box}
+        body{font:9px Arial,Helvetica,sans-serif;color:#171717;margin:0;line-height:1.35}
+        .diary-page{break-after:page;page-break-after:always}.diary-page:last-child{break-after:auto;page-break-after:auto}
+        .masthead{min-height:64px;border:1px solid #777;display:grid;grid-template-columns:130px minmax(0,1fr) 120px;align-items:center;padding:5px 10px;text-align:center;gap:10px;overflow:hidden}
+        .company-mark{font-size:13px;font-weight:900;color:#174a73;text-align:left;min-width:0;overflow:hidden}.company-mark img{display:block;max-width:120px;max-height:48px;object-fit:contain;object-position:left center}.company-mark small{display:block;font-size:7px;color:#333;overflow-wrap:anywhere}
+        .masthead h1{margin:0;font-size:23px;letter-spacing:.8px;color:#123452}.masthead h2{margin:5px 0 0;font-size:11px}.brand-caption{font-size:8px}
+        .contract-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;border:1px solid #777;padding:8px;margin-top:6px}.contract-grid p{margin:0;font-size:8px;line-height:1.35}.contract-grid .full{grid-column:1/-1}
+        .bar{margin-top:7px;border:1px solid #777;text-align:center;font-weight:800;padding:4px;font-size:9px}
+        .team-table{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;margin:2px 0 0;border:1px solid #777}.team-table td{border:1px solid #888!important;padding:3px 5px;font-size:8px;line-height:1.25;vertical-align:middle}.team-table td:first-child{width:78%;overflow-wrap:anywhere}.team-table td:last-child{width:22%;text-align:center;border-right:1px solid #888!important}
+        .ppe-list{border:1px solid #888;padding:7px;display:flex;gap:10px;flex-wrap:wrap}.ppe{font-size:8px}.weather{border:1px solid #888;margin-top:6px;padding:6px;font-size:8px}
+        .content{border:1px solid #888;min-height:54px;padding:8px;white-space:pre-wrap;font-size:8px}.content.short{min-height:48px}
+        .photos{border:1px solid #888;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:90px}figure{margin:0;border:1px solid #aaa;padding:5px;break-inside:avoid}figure img{width:100%;max-height:250px;object-fit:contain}figcaption{font-size:7px;margin-top:3px}.no-photos{padding:28px;text-align:center;grid-column:1/-1}
+        .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:58px;text-align:center;break-inside:avoid;align-items:start}.signatures div{position:relative;border-top:1px solid #333;padding-top:6px;font-size:8px;min-height:58px}.signatures strong{display:block}.signatures img{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);width:auto;max-width:125px;max-height:34px;object-fit:contain;object-position:center bottom}
+        .foot{margin-top:10px;border-top:1px solid #aaa;padding-top:4px;text-align:right;font-size:7px;color:#555}
+        @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+      </style></head><body>${pages}<script>window.onload=()=>window.print()<\/script></body></html>`);
+      popup.document.close();
+    } catch {
+      popup.close();
+      setError('Não foi possível preparar os arquivos de identidade visual para impressão.');
+    }
   };
+  const printEntry = (entry: DiaryEntry) => { void printEntries([entry]); };
 
   return <section className="native-diary">
     <header className="native-diary-header"><div><span className="eyebrow">GESTÃO 360 • DIÁRIO DE OBRAS</span><h3>Diário de Obras · Contrato {contract.number}</h3><p>{contract.agency} · {contract.contractor}</p><small>Os registros abaixo pertencem exclusivamente a este contrato e ficam armazenados neste computador.</small></div><span className="native-diary-badge">VINCULADO AO CONTRATO</span></header>
@@ -207,7 +220,7 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
       {error && <p className="schedule-form-error" role="alert">{error}</p>}
       <div className="native-diary-actions"><button type="submit" className="primary-button" disabled={saving}>{saving?'Salvando...':editingId?'Salvar alterações':'Salvar diário'}</button></div>
     </form>
-    <div className="native-diary-list-heading"><div><span className="eyebrow">HISTÓRICO DE EXECUÇÃO</span><h4>Diários deste contrato ({entries.length})</h4></div><button className="outline-button" type="button" onClick={()=>{resetForm();window.scrollTo({top:0,behavior:'smooth'});}}>+ Novo diário</button></div>
-    {loading ? <p>Carregando registros...</p> : entries.length ? <div className="native-diary-list">{entries.map(entry=><article className="native-diary-card" key={entry.id}><div className="native-diary-number">{String(entry.number).padStart(2,'0')}</div><div className="native-diary-card-main"><div><strong>Diário {String(entry.number).padStart(2,'0')}</strong><small>{dateLabel(entry.date)} · {entry.weather}</small></div><p>{entry.description}</p><small>{entry.photos.length} foto(s) · ocorrências: {entry.occurrence?'sim':'não'} · fiscalização: {entry.fiscal?'sim':'não'}</small></div><div className="native-diary-card-actions"><button type="button" onClick={()=>editEntry(entry)}>Editar</button><button type="button" onClick={()=>{void printEntry(entry).catch(()=>setError('Não foi possível carregar o logotipo ou a assinatura da empresa.'));}}>Imprimir</button><button type="button" className="danger" onClick={()=>void deleteDiary(entry)}>Excluir</button></div></article>)}</div> : <div className="schedule-empty"><strong>Nenhum diário cadastrado neste contrato</strong><p>O primeiro registro começará pelo Diário 01. Nenhum dado de outro contrato será exibido.</p></div>}
+    <div className="native-diary-list-heading"><div><span className="eyebrow">HISTÓRICO DE EXECUÇÃO</span><h4>Diários deste contrato ({entries.length})</h4></div><div className="native-diary-list-toolbar"><button className="outline-button" type="button" onClick={()=>{resetForm();window.scrollTo({top:0,behavior:'smooth'});}}>+ Novo diário</button></div></div>
+    {loading ? <p>Carregando registros...</p> : entries.length ? <><div className="native-diary-batch-toolbar"><label><input type="checkbox" checked={allSelected} onChange={event=>setSelectedIds(event.target.checked?entries.map(entry=>entry.id):[])}/> Selecionar todos</label><span>{selectedEntries.length} de {entries.length} selecionado(s)</span><button type="button" className="primary-button" disabled={!selectedEntries.length} onClick={()=>void printEntries(selectedEntries)}>Imprimir selecionados</button></div><div className="native-diary-list">{entries.map(entry=><article className="native-diary-card" key={entry.id}><div className="native-diary-number">{String(entry.number).padStart(2,'0')}</div><div className="native-diary-card-main"><div><strong>Diário {String(entry.number).padStart(2,'0')}</strong><small>{dateLabel(entry.date)} · {entry.weather}</small></div><p>{entry.description}</p><small>{entry.photos.length} foto(s) · ocorrências: {entry.occurrence?'sim':'não'} · fiscalização: {entry.fiscal?'sim':'não'}</small></div><div className="native-diary-card-actions"><button type="button" onClick={()=>editEntry(entry)}>Editar</button><button type="button" onClick={()=>printEntry(entry)}>Imprimir</button><button type="button" className="danger" onClick={()=>void deleteDiary(entry)}>Excluir</button></div></article>)}</div> : <div className="schedule-empty"><strong>Nenhum diário cadastrado neste contrato</strong><p>O primeiro registro começará pelo Diário 01. Nenhum dado de outro contrato será exibido.</p></div>}
   </section>;
 }
