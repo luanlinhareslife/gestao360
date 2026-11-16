@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { contracts as seedContracts, type Contract } from '../data/contracts';
 import { extractContractFromPdf, type ExtractedContract } from '../services/pdfContractAnalyzer';
+import NativeDiaryModule from './NativeDiaryModule';
 
 type WorkspaceTab = 'Resumo' | 'Tarefas' | 'Documentos' | 'Cronograma físico-financeiro' | 'Medições' | 'Diário 360';
 type Stage = {
@@ -104,21 +105,6 @@ const tabs: Array<{ name: WorkspaceTab; icon: string }> = [
 const STORAGE_KEY = 'gestao360.workSchedules.v1';
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-
-function diaryUrlForContract(contract: Contract) {
-  const url = new URL('https://diario-360-9ux61w.v2.appdeploy.ai/');
-  // Stable identity: the diary app must use this ID as the primary contract/obra link.
-  // Text fields remain as human-readable metadata and migration fallback only.
-  url.searchParams.set('contractId', contract.id);
-  url.searchParams.set('companyCnpj', contract.cnpj.replace(/\\D/g, ''));
-  url.searchParams.set('contract', contract.number);
-  url.searchParams.set('process', contract.process);
-  url.searchParams.set('contractor', contract.contractor);
-  url.searchParams.set('agency', contract.agency);
-  url.searchParams.set('object', contract.object);
-  url.searchParams.set('embed', '1');
-  return url.toString();
-}
 
 const CONTRACTS_KEY = 'gestao360.contracts.v1';
 type ContractDraft = { number: string; process: string; agency: string; contractor: string; cnpj: string; object: string; value: string; signedAt: string; executionDays: string; validity: string; guaranteePercent: string };
@@ -523,7 +509,7 @@ export default function ContractWorkspaceModule() {
               <p className="contract-document-storage-note">Nesta etapa, os arquivos ficam armazenados localmente neste computador. A sincronização segura com a versão web será implementada separadamente.</p>
             </div>}
             {tab === 'Medições' && <div className="contract-tab-panel"><h3>Medições deste contrato</h3><p>As planilhas, memórias de cálculo, protocolos, aprovações e pagamentos ficarão vinculados a esta pasta. A consolidação geral será exibida na aba Medições da plataforma.</p></div>}
-            {tab === 'Diário 360' && <div className="contract-tab-panel contract-diary-panel"><div className="contract-diary-heading"><div><h3>Diário de Obras · Contrato {selected.number}</h3><p>Crie, edite e imprima os diários nesta pasta, sem abrir outra janela. A sequência e os registros são exclusivos deste contrato e permanecem na base oficial do Diário 360.</p><p className="contract-diary-company-note">A identificação da empresa responsável alimenta o cadastro da obra; logotipo e assinatura utilizados na impressão vêm do perfil oficial dessa empresa no Diário 360.</p></div><span>VINCULADO A ESTE CONTRATO</span></div><iframe key={selected.id} className="contract-diary-frame" src={diaryUrlForContract(selected)} title={`Diário de Obras do contrato ${selected.number}`} loading="eager" allow="camera; geolocation" referrerPolicy="strict-origin-when-cross-origin" /></div>}
+            {tab === 'Diário 360' && <div className="contract-tab-panel contract-diary-panel"><div className="contract-diary-heading"><div><h3>Diário de Obras · Contrato {selected.number}</h3><p>Crie, edite e imprima os diários nesta pasta, sem abrir outra janela. A sequência e os registros são exclusivos deste contrato e permanecem na base oficial do Diário 360.</p><p className="contract-diary-company-note">A identificação da empresa responsável alimenta o cadastro da obra; logotipo e assinatura utilizados na impressão vêm do perfil oficial dessa empresa no Diário 360.</p></div><span>VINCULADO A ESTE CONTRATO</span></div><NativeDiaryModule key={selected.id} contract={selected} /></div>}
           </> : <div className="schedule-empty"><strong>Nenhum contrato disponível nesta versão</strong><p>Os cadastros da versão web precisam ser integrados antes de aparecerem aqui.</p></div>}
         </div>
       </div>
