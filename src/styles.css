@@ -427,3 +427,46 @@ nav{display:grid;gap:1px;padding:0 9px}.nav-item{border:0;background:transparent
 .contract-pdf-import-button input{display:none}
 .contract-pdf-filename,.contract-pdf-read-message{grid-column:1/-1;margin:0;color:#315b7e;font-size:12px;line-height:1.5}
 .contract-pdf-read-message{padding:9px 11px;border-radius:8px;background:#e8f1fb}
+
+
+/* Native, contract-isolated work diary */
+.native-diary{display:grid;gap:16px;margin-top:4px;color:#173957}
+.native-diary-header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding:4px 2px}
+.native-diary-header h3{margin:5px 0;font-size:20px;color:#123452}
+.native-diary-header p{margin:5px 0;color:#536f88;font-size:11px}
+.native-diary-header small{color:#71869a;font-size:10px}
+.native-diary-badge{padding:9px 13px;border:1px solid #c9def4;border-radius:22px;background:#f0f7ff;color:#075ca9;font-size:9px;font-weight:900;white-space:nowrap}
+.native-diary-notice{display:grid;gap:5px;padding:12px 15px;border:1px solid #d8e6f3;border-radius:10px;background:#f3f8fd}
+.native-diary-notice strong{font-size:11px;color:#164e7c}
+.native-diary-notice span{font-size:10px;line-height:1.5;color:#627b91}
+.native-diary-form{display:grid;gap:14px;padding:18px;border:1px solid #dce5ed;border-radius:12px;background:#fff}
+.native-diary-form-title,.native-diary-list-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.native-diary-form-title h4,.native-diary-list-heading h4{margin:4px 0 0;font-size:16px;color:#173957}
+.native-diary-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.native-diary-fields label{display:grid;gap:6px;color:#31536f;font-size:10px;font-weight:800}
+.native-diary-fields input,.native-diary-fields select,.native-diary-fields textarea{width:100%;padding:10px;border:1px solid #d5e0e9;border-radius:8px;background:#fff;color:#173957;font:inherit;font-size:12px;outline-color:#1470d2}
+.native-diary-wide{grid-column:1/-1}
+.native-diary-photo-tools,.native-diary-gps{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px;border:1px solid #e0e8ef;border-radius:9px;background:#f8fafc}
+.native-diary-photo-tools>div,.native-diary-gps>div{display:grid;gap:4px}
+.native-diary-photo-tools strong,.native-diary-gps strong{font-size:11px;color:#173957}
+.native-diary-photo-tools small,.native-diary-gps small{font-size:9px;color:#71869a}
+.native-diary-photo-tools input{display:none}
+.native-diary-photo-list{display:grid;gap:6px}
+.native-diary-photo-list>div{display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid #e2eaf1;border-radius:7px;font-size:10px;color:#31536f}
+.native-diary-photo-list>div span:nth-child(2){flex:1;overflow-wrap:anywhere}
+.native-diary-photo-list button,.native-diary-card-actions button{padding:7px 10px;border:1px solid #d5e0e9;border-radius:7px;background:#fff;color:#14517f;font-size:10px;font-weight:800;cursor:pointer}
+.native-diary-gps>span{font-size:9px;color:#627b91}
+.native-diary-actions{display:flex;justify-content:flex-end}
+.native-diary-actions button:disabled{opacity:.6;cursor:wait}
+.native-diary-list{display:grid;gap:10px}
+.native-diary-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px;border:1px solid #dce5ed;border-radius:11px;background:#fff}
+.native-diary-number{display:grid;place-items:center;width:42px;height:42px;border-radius:9px;background:#eef5fc;color:#075ca9;font-size:18px;font-weight:900}
+.native-diary-card-main{min-width:0}
+.native-diary-card-main>div{display:flex;justify-content:space-between;gap:10px}
+.native-diary-card-main strong{font-size:12px;color:#173957}
+.native-diary-card-main small{font-size:9px;color:#71869a}
+.native-diary-card-main p{margin:8px 0;color:#31536f;font-size:12px;line-height:1.5;white-space:pre-wrap}
+.native-diary-card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.native-diary-card-actions .danger{color:#a32626;border-color:#efcccc}
+@media(max-width:900px){.native-diary-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.native-diary-card{grid-template-columns:42px minmax(0,1fr)}.native-diary-card-actions{grid-column:2;justify-content:flex-start}}
+@media(max-width:600px){.native-diary-header,.native-diary-photo-tools,.native-diary-gps{align-items:stretch;flex-direction:column}.native-diary-fields{grid-template-columns:1fr}.native-diary-wide{grid-column:auto}.native-diary-card-main>div{flex-direction:column}.native-diary-card-actions{grid-column:1/-1}}
