@@ -134,14 +134,45 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
     try { await removeEntry(entry.id); await reload(); if (editingId === entry.id) resetForm(); }
     catch { setError('Não foi possível excluir o diário.'); }
   };
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char] ?? char));
   const printEntry = (entry: DiaryEntry) => {
     const photoMarkup = entry.photos.map(photo => {
       const url = URL.createObjectURL(photo.blob);
-      return '<figure><img src="'+url+'" /><figcaption>'+photo.name+'</figcaption></figure>';
+      return '<figure><img src="'+url+'" /><figcaption>'+escapeHtml(photo.name)+'</figcaption></figure>';
     }).join('');
     const popup = window.open('', '_blank', 'width=1000,height=800');
     if (!popup) { setError('Permita janelas pop-up para imprimir o diário.'); return; }
-    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diário ${entry.number} - Contrato ${contract.number}</title><style>body{font:14px Arial,sans-serif;color:#172b45;margin:32px}h1{font-size:22px}h2{font-size:17px;margin-top:24px}.meta{display:flex;gap:24px;flex-wrap:wrap;border-block:1px solid #ccd6e2;padding:12px 0}p{line-height:1.55;white-space:pre-wrap}section{margin:18px 0} .photos{display:grid;grid-template-columns:1fr 1fr;gap:14px}figure{margin:0;break-inside:avoid}img{width:100%;max-height:340px;object-fit:contain}figcaption{font-size:11px;color:#555}@media print{button{display:none}}</style></head><body><h1>DIÁRIO DE OBRAS Nº ${String(entry.number).padStart(2,'0')}</h1><strong>Contrato nº ${contract.number} · ${contract.contractor}</strong><div class="meta"><span>Data: ${dateLabel(entry.date)}</span><span>Condição climática: ${entry.weather}</span><span>Processo: ${contract.process}</span></div><section><h2>Serviços executados</h2><p>${entry.description}</p></section><section><h2>Ocorrências</h2><p>${entry.occurrence || 'Não houve registro de ocorrência.'}</p></section><section><h2>Fiscalização</h2><p>${entry.fiscal || 'Não informado.'}</p></section><section><h2>Localização</h2><p>${entry.latitude !== undefined ? entry.latitude+', '+entry.longitude : 'Não registrada'}</p></section><section><h2>Registro fotográfico</h2><div class="photos">${photoMarkup}</div></section><script>window.onload=()=>window.print()<\/script></body></html>`);
+    popup.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Diário ${entry.number} - Contrato ${escapeHtml(contract.number)}</title><style>
+      @page{size:A4;margin:16mm 15mm}
+      *{box-sizing:border-box}
+      body{font:11px Arial,Helvetica,sans-serif;color:#183b59;margin:0;line-height:1.5}
+      .topline{height:8px;background:#0b3d63;margin-bottom:24px}
+      .brand{display:flex;justify-content:space-between;align-items:center;padding-bottom:13px;border-bottom:2px solid #0b3d63}
+      .brand strong{font-size:13px;letter-spacing:.7px;color:#0b3153}
+      .brand span{font-size:9px;color:#668099;text-align:right}
+      .title{margin:24px 0 5px;font-size:22px;letter-spacing:.2px;color:#0b3153}
+      .subtitle{font-size:11px;color:#42617c;font-weight:700}
+      .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:17px 0;padding:12px;background:#f1f6fb;border:1px solid #d7e4ef;border-radius:6px}
+      .meta div{display:grid;gap:3px}.meta small{font-size:8px;color:#6b8297;text-transform:uppercase;letter-spacing:.5px}.meta strong{font-size:10px;color:#173e60}
+      section{margin:18px 0;break-inside:avoid}
+      h2{margin:0 0 7px;padding-bottom:6px;border-bottom:1px solid #dce6ef;font-size:12px;color:#0b4d7a}
+      p{margin:0;white-space:pre-wrap;line-height:1.65}
+      .photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      figure{margin:0;padding:7px;border:1px solid #dce6ef;border-radius:5px;break-inside:avoid}
+      img{width:100%;max-height:310px;object-fit:contain}
+      figcaption{margin-top:4px;font-size:8px;color:#627a90;overflow-wrap:anywhere}
+      .footer{margin-top:28px;padding-top:8px;border-top:1px solid #dce6ef;display:flex;justify-content:space-between;color:#7b8fa2;font-size:8px}
+      @media print{.topline{-webkit-print-color-adjust:exact;print-color-adjust:exact}.meta{background:#f1f6fb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body><div class="topline"></div><div class="brand"><strong>GESTÃO 360 · DIÁRIO DE OBRAS</strong><span>REGISTRO DE EXECUÇÃO CONTRATUAL<br>Documento gerado pelo Gestão 360 Desktop</span></div>
+    <h1 class="title">DIÁRIO DE OBRAS Nº ${String(entry.number).padStart(2,'0')}</h1><div class="subtitle">Contrato nº ${escapeHtml(contract.number)} · ${escapeHtml(contract.contractor)}</div>
+    <div class="meta"><div><small>Data do diário</small><strong>${dateLabel(entry.date)}</strong></div><div><small>Condição climática</small><strong>${escapeHtml(entry.weather)}</strong></div><div><small>Processo administrativo</small><strong>${escapeHtml(contract.process || 'Não informado')}</strong></div><div><small>Contratante</small><strong>${escapeHtml(contract.agency)}</strong></div><div><small>Fiscal / responsável</small><strong>${escapeHtml(entry.fiscal || 'Não informado')}</strong></div><div><small>Empresa contratada</small><strong>${escapeHtml(contract.contractor)}</strong></div></div>
+    <section><h2>Serviços executados</h2><p>${escapeHtml(entry.description)}</p></section>
+    <section><h2>Ocorrências e interferências</h2><p>${escapeHtml(entry.occurrence || 'Não houve registro de ocorrência.')}</p></section>
+    <section><h2>Fiscalização</h2><p>${escapeHtml(entry.fiscal || 'Não informado.')}</p></section>
+    <section><h2>Georreferenciamento</h2><p>${entry.latitude !== undefined ? escapeHtml(entry.latitude.toFixed(6)+', '+entry.longitude!.toFixed(6)) : 'Localização não registrada'}</p></section>
+    <section><h2>Registro fotográfico (${entry.photos.length} foto(s))</h2><div class="photos">${photoMarkup || '<p>Nenhuma fotografia anexada.</p>'}</div></section>
+    <div class="footer"><span>Contrato ${escapeHtml(contract.number)} · Diário nº ${String(entry.number).padStart(2,'0')}</span><span>Emitido em ${new Date().toLocaleString('pt-BR')}</span></div>
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
     popup.document.close();
   };
 
