@@ -621,6 +621,16 @@ function ArtModule() {
 }
 
 function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
+  // The contract workspace stores newly registered contracts in localStorage.
+  // Merge those records with the seed contracts so the dashboard reflects the same total.
+  const [dashboardContracts] = useState<Contract[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('gestao360.contracts.v1') ?? '[]') as Contract[];
+      return [...contracts, ...saved.filter(item => !contracts.some(seed => seed.id === item.id))];
+    } catch {
+      return contracts;
+    }
+  });
   const pending = obligations.filter(item => item.status !== 'CONCLUÍDA');
   const urgent = obligations.filter(item => item.status === 'VERIFICAÇÃO URGENTE' || item.severity === 'CRÍTICO');
   const measurementTasks = obligations.filter(item => item.title.toLowerCase().includes('medição'));
@@ -638,7 +648,7 @@ function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
       </section>
       <section className="welcome-row"><div className="welcome"><div className="sun">☼</div><div><h3>Bem-vindo, Luan!</h3><p>Aqui é onde grandes obras começam com uma boa gestão.</p></div></div><div className="date-card"><span>▣</span><div><strong>{today}</strong><small>"Disciplina hoje, grandes resultados amanhã."</small></div></div></section>
       <section className="metrics">
-        <Metric icon="▤" title="Contratos cadastrados" value={String(contracts.length)} tone="blue" onClick={() => onNavigate('Contratos')} />
+        <Metric icon="▤" title="Contratos cadastrados" value={String(dashboardContracts.length)} tone="blue" onClick={() => onNavigate('Contratos')} />
         <Metric icon="▣" title="Obras em execução" value="Em estruturação" tone="green" onClick={() => onNavigate('Contratos')} />
         <Metric icon="◷" title="Obrigações pendentes" value={String(pending.length)} tone="yellow" onClick={() => onNavigate('Obrigações e Alertas')} />
         <Metric icon="✓" title="Alertas críticos" value={String(urgent.length)} tone="purple" onClick={() => onNavigate('Alertas/Pendências')} />
@@ -655,14 +665,14 @@ function Dashboard({ onNavigate }: { onNavigate: (module: string) => void }) {
       <section className="dashboard-lower-grid">
         <article className="dashboard-panel works-panel">
           <div className="dashboard-panel-heading"><div><span className="eyebrow">ACOMPANHAMENTO</span><h2>Contratos em andamento</h2></div><button onClick={() => onNavigate('Contratos')}>Ver contratos →</button></div>
-          {contracts.length ? contracts.map(contract => <div className="dashboard-contract-row" key={contract.id}>
+          {dashboardContracts.length ? dashboardContracts.map(contract => <div className="dashboard-contract-row" key={contract.id}>
             <span className="dashboard-row-icon">▤</span><div className="dashboard-contract-main"><strong>Contrato nº {contract.number}</strong><small>{contract.agency}</small><small>{contract.contractor}</small></div><span className="dashboard-contract-status">{contract.status}</span><strong className="dashboard-contract-value">{formatCurrency(contract.value)}</strong>
           </div>) : <div className="dashboard-empty">Nenhum contrato cadastrado.</div>}
         </article>
         <article className="dashboard-panel summary-panel">
           <div className="dashboard-panel-heading"><div><span className="eyebrow">VISÃO GERAL</span><h2>Resumo geral</h2></div></div>
           <div className="dashboard-summary-grid">
-            <div className="summary-tile blue"><strong>{contracts.length}</strong><span>Contratos cadastrados</span></div>
+            <div className="summary-tile blue"><strong>{dashboardContracts.length}</strong><span>Contratos cadastrados</span></div>
             <div className="summary-tile green"><strong>{obligations.length}</strong><span>Obrigações mapeadas</span></div>
             <div className="summary-tile purple"><strong>{pending.length}</strong><span>Pendências abertas</span></div>
             <div className="summary-tile amber"><strong>{measurementTasks.length}</strong><span>Obrigações de medição</span></div>
