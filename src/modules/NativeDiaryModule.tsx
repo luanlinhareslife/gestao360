@@ -79,7 +79,7 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
   useEffect(() => { void reload(); setDraft(emptyDraft()); setPhotos([]); setEditingId(null); }, [contract.id]);
 
   const nextNumber = useMemo(() => Math.max(0,...entries.map(item => item.number))+1,[entries]);
-  const updateDraft = (field: keyof DiaryDraft, value: string) => setDraft(current => ({...current,[field]:value}));
+  const updateDraft = (field: 'date'|'weather'|'description'|'occurrence'|'fiscal'|'observations', value: string) => setDraft(current => ({...current,[field]:value}));
 
   const addPhotos = async (files: FileList|null) => {
     if (!files) return;
