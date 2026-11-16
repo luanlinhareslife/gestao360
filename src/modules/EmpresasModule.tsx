@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { saveBrandAsset } from '../services/companyBrandAssets';
 
 type CompanyDocument = { id: string; name: string; category: string; expiresAt: string; fileName: string };
 type CompanyRecord = { id: string; name: string; cnpj: string; city: string; email: string; phone: string; logoName: string; signatureName: string; documents: CompanyDocument[]; createdAt: string };
@@ -71,8 +72,15 @@ export default function EmpresasModule() {
     event.currentTarget.reset();
   };
 
-  const saveBrandFile = (kind: 'logoName' | 'signatureName', file?: File) => {
-    if (file) updateSelected({ [kind]: file.name });
+  const saveBrandFile = async (kind: 'logoName' | 'signatureName', file?: File) => {
+    if (!file || !selected) return;
+    try {
+      const assetKind = kind === 'logoName' ? 'logo' : 'signature';
+      await saveBrandAsset(selected.cnpj, assetKind, file);
+      updateSelected({ [kind]: file.name });
+    } catch {
+      window.alert('Não foi possível armazenar a imagem. Tente PNG ou JPG de tamanho menor.');
+    }
   };
 
   return (
@@ -110,7 +118,7 @@ export default function EmpresasModule() {
           <div className="company-detail-head"><div><span className="eyebrow">PAINEL DA EMPRESA</span><h2>{selected.name}</h2><p>{selected.cnpj} · {selected.city || 'Cidade não informada'}</p></div><span className="status-pill">Cadastro ativo</span></div>
           <div className="company-branding-grid">
             <label className="company-upload-tile"> <span>▧</span><strong>Logotipo da empresa</strong><small>{selected.logoName || 'Enviar imagem do logotipo'}</small><input type="file" accept="image/*" onChange={e => saveBrandFile('logoName', e.target.files?.[0])} /></label>
-            <label className="company-upload-tile"><span>✍</span><strong>Assinatura</strong><small>{selected.signatureName || 'Enviar imagem da assinatura'}</small><input type="file" accept="image/*,.png,.jpg,.jpeg" onChange={e => saveBrandFile('signatureName', e.target.files?.[0])} /></label>
+            <label className="company-upload-tile"><span>✍</span><strong>Assinatura do engenheiro responsável</strong><small>{selected.signatureName || 'Enviar imagem da assinatura'}</small><input type="file" accept="image/*,.png,.jpg,.jpeg" onChange={e => saveBrandFile('signatureName', e.target.files?.[0])} /></label>
           </div>
           <div className="company-doc-header"><div><span className="eyebrow">ARQUIVO DOCUMENTAL</span><h3>Documentos e certidões</h3></div><span>{selected.documents.length} arquivo(s) registrados</span></div>
           <form className="company-document-form" onSubmit={addDocument}>
@@ -128,7 +136,7 @@ export default function EmpresasModule() {
             })}
             {!selected.documents.length && <p className="company-empty">Nenhum documento registrado para esta empresa.</p>}
           </div>
-          <p className="company-storage-note">Este primeiro cadastro grava os metadados no armazenamento local deste computador. A guarda segura e sincronizada dos arquivos e das imagens será conectada à base central na próxima etapa.</p>
+          <p className="company-storage-note">Este primeiro cadastro grava os metadados no armazenamento local deste computador. As imagens de logotipo e assinatura são armazenadas localmente neste computador e vinculadas ao CNPJ da empresa. A sincronização central será conectada em etapa futura.</p>
         </div> : <div className="company-detail company-empty-state"><span>♧</span><h2>Selecione uma empresa</h2><p>Escolha uma empresa para administrar seus dados e documentos.</p></div>}
       </div>
     </section>
