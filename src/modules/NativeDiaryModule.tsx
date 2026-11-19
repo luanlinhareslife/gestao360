@@ -155,6 +155,8 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
           const url = URL.createObjectURL(photo.blob);
           return '<figure><img src="'+url+'" /><figcaption>'+escapeHtml(photo.name)+'</figcaption></figure>';
         }).join('');
+        const photoCount = entry.photos.length;
+        const photoLayoutClass = photoCount > 8 ? 'photos photos-dense' : photoCount > 4 ? 'photos photos-medium' : 'photos photos-standard';
         const teamMarkup = TEAM_ROLES.map(role => '<tr><td>'+role+'</td><td>'+escapeHtml(entry.team?.[role] ?? '0')+'</td></tr>').join('');
         const ppeMarkup = PPE_OPTIONS.map(item => '<span class="ppe">'+(entry.ppe?.includes(item) ? '☑' : '☐')+' '+item+'</span>').join('');
         return `<main class="diary-page">
@@ -166,7 +168,7 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
           <div class="bar">SERVIÇOS EXECUTADOS</div><div class="content">${escapeHtml(entry.description)}</div>
           <div class="bar">OCORRÊNCIAS</div><div class="content short">${escapeHtml(entry.occurrence || 'Nenhuma ocorrência registrada.')}</div>
           <div class="bar">OBSERVAÇÕES DA FISCALIZAÇÃO / ENG. FISCAL DA OBRA</div><div class="content short">${escapeHtml(entry.observations || entry.fiscal || 'Sem observações.')}</div>
-          <div class="bar">RELATÓRIO FOTOGRÁFICO</div><div class="photos">${photoMarkup || '<div class="no-photos">Sem fotos.</div>'}</div>
+          <div class="bar photo-section-title">RELATÓRIO FOTOGRÁFICO</div><div class="${photoLayoutClass}">${photoMarkup || '<div class="no-photos">Sem fotos.</div>'}</div>
           <div class="signatures"><div><strong>Engenheiro Fiscal da Obra</strong>ENGENHEIRO FISCAL DA OBRA</div><div>${signatureUrl ? '<img src="'+signatureUrl+'" alt="Assinatura do engenheiro responsável">' : ''}<strong>Engenheiro Responsável</strong>RESPONSÁVEL PELA EMPRESA</div></div>
           <div class="foot">Contrato ${escapeHtml(contract.number)} · Diário nº ${String(entry.number).padStart(2,'0')} · Emitido em ${new Date().toLocaleString('pt-BR')}</div>
         </main>`;
@@ -184,8 +186,8 @@ export default function NativeDiaryModule({ contract }: { contract: Contract }) 
         .team-table{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;margin:2px 0 0;border:1px solid #777}.team-table td{border:1px solid #888!important;padding:3px 5px;font-size:8px;line-height:1.25;vertical-align:middle}.team-table td:first-child{width:78%;overflow-wrap:anywhere}.team-table td:last-child{width:22%;text-align:center;border-right:1px solid #888!important}
         .ppe-list{border:1px solid #888;padding:7px;display:flex;gap:10px;flex-wrap:wrap}.ppe{font-size:8px}.weather{border:1px solid #888;margin-top:6px;padding:6px;font-size:8px}
         .content{border:1px solid #888;min-height:54px;padding:8px;white-space:pre-wrap;font-size:8px}.content.short{min-height:48px}
-        .photos{border:1px solid #888;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:90px}figure{margin:0;border:1px solid #aaa;padding:5px;break-inside:avoid}figure img{width:100%;max-height:250px;object-fit:contain}figcaption{font-size:7px;margin-top:3px}.no-photos{padding:28px;text-align:center;grid-column:1/-1}
-        .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:58px;text-align:center;break-inside:avoid;align-items:start}.signatures div{position:relative;border-top:1px solid #333;padding-top:6px;font-size:8px;min-height:58px}.signatures strong{display:block}.signatures img{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);width:auto;max-width:125px;max-height:34px;object-fit:contain;object-position:center bottom}
+        .photo-section-title{break-before:page;page-break-before:always;margin-top:0}.photos{border:1px solid #888;padding:7px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-content:start;break-inside:avoid;page-break-inside:avoid}.photos figure{margin:0;border:1px solid #aaa;padding:5px;break-inside:avoid;page-break-inside:avoid;min-width:0}.photos figure img{display:block;width:100%;height:92mm;max-height:92mm;object-fit:contain}.photos figcaption{font-size:7px;margin-top:3px;overflow-wrap:anywhere}.photos-medium{grid-template-columns:repeat(3,minmax(0,1fr))}.photos-medium figure img{height:57mm;max-height:57mm}.photos-dense{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.photos-dense figure{padding:3px}.photos-dense figure img{height:34mm;max-height:34mm}.photos-dense figcaption{font-size:6px}.no-photos{padding:28px;text-align:center;grid-column:1/-1}
+        .signatures{display:grid;grid-template-columns:1fr 1fr;gap:45px;margin-top:18px;text-align:center;break-inside:avoid;align-items:start}.signatures div{position:relative;border-top:1px solid #333;padding-top:6px;font-size:8px;min-height:58px}.signatures strong{display:block}.signatures img{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);width:auto;max-width:125px;max-height:34px;object-fit:contain;object-position:center bottom}
         .foot{margin-top:10px;border-top:1px solid #aaa;padding-top:4px;text-align:right;font-size:7px;color:#555}
         @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
       </style></head><body>${pages}<script>window.onload=()=>window.print()<\/script></body></html>`);
